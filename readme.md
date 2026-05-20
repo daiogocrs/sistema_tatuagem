@@ -20,8 +20,6 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 
 É necessário ter o Python 3.6 ou superior instalado no computador.
 
-- :contentReference[oaicite:0]{index=0}
-
 ---
 
 ## Passo a passo
