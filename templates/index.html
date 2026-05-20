@@ -1,98 +1,117 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estúdio de Tatuagem - Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-light">
 
-<div class="container mt-5">
-    <h2 class="mb-4 text-center">Controle de Materiais</h2>
-
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <form action="/adicionar_material" method="POST" class="row g-3">
-                <div class="col-md-4">
-                    <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta" required>
-                </div>
-                <div class="col-md-3">
-                    <select name="categoria" class="form-select" required>
-                        <option value="" disabled selected>Categoria...</option>
-                        <option value="Agulhas">Agulhas</option>
-                        <option value="Tintas">Tintas</option>
-                        <option value="Outros">Outros</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" name="quantidade" class="form-control" placeholder="Qtd" required>
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-dark w-100">Adicionar Novo</button>
-                </div>
-            </form>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">Tattoo Studio</a>
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/">Estoque</a>
+                <a class="nav-link" href="/agenda">Agenda</a>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <div class="d-flex justify-content-center mb-3">
-        <div class="btn-group shadow-sm" role="group">
-            <a href="/" class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
-            <a href="/?categoria=Agulhas" class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
-            <a href="/?categoria=Tintas" class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
-            <a href="/?categoria=Outros" class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">Controle de Materiais</h2>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <form action="/adicionar_material" method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta"
+                            required>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="categoria" class="form-select" required>
+                            <option value="" disabled selected>Categoria...</option>
+                            <option value="Agulhas">Agulhas</option>
+                            <option value="Tintas">Tintas</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="number" name="quantidade" class="form-control" placeholder="Qtd" required>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-dark w-100">Adicionar Novo</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Categoria</th>
-                        <th>Material</th>
-                        <th>Quantidade</th>
-                        <th class="text-end">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in estoque %}
-                    <tr>
-                        <td>
-                            {% if item['categoria'] == 'Agulhas' %}
+        <div class="d-flex justify-content-center mb-3">
+            <div class="btn-group shadow-sm" role="group">
+                <a href="/" class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
+                <a href="/?categoria=Agulhas"
+                    class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
+                <a href="/?categoria=Tintas"
+                    class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
+                <a href="/?categoria=Outros"
+                    class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Material</th>
+                            <th>Quantidade</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in estoque %}
+                        <tr>
+                            <td>
+                                {% if item['categoria'] == 'Agulhas' %}
                                 <span class="badge bg-primary">Agulhas</span>
-                            {% elif item['categoria'] == 'Tintas' %}
+                                {% elif item['categoria'] == 'Tintas' %}
                                 <span class="badge bg-success">Tintas</span>
-                            {% else %}
+                                {% else %}
                                 <span class="badge bg-secondary">Outros</span>
-                            {% endif %}
-                        </td>
-                        <td class="fw-bold">{{ item['nome_item'] }}</td>
-                        <td>
-                            <a href="/alterar_quantidade/{{ item['id'] }}/menos" class="btn btn-sm btn-outline-secondary fw-bold px-2">-</a>
-                            <span class="mx-2 fs-5">{{ item['quantidade'] }}</span>
-                            <a href="/alterar_quantidade/{{ item['id'] }}/mais" class="btn btn-sm btn-outline-secondary fw-bold px-2">+</a>
-                        </td>
-                        <td class="text-end">
-                            <a href="/deletar_material/{{ item['id'] }}" class="btn btn-sm btn-danger">Excluir</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            {% if categoria_atual %}
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold">{{ item['nome_item'] }}</td>
+                            <td>
+                                <a href="/alterar_quantidade/{{ item['id'] }}/menos"
+                                    class="btn btn-sm btn-outline-secondary fw-bold px-2">-</a>
+                                <span class="mx-2 fs-5">{{ item['quantidade'] }}</span>
+                                <a href="/alterar_quantidade/{{ item['id'] }}/mais"
+                                    class="btn btn-sm btn-outline-secondary fw-bold px-2">+</a>
+                            </td>
+                            <td class="text-end">
+                                <a href="/deletar_material/{{ item['id'] }}" class="btn btn-sm btn-danger">Excluir</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                {% if categoria_atual %}
                                 Nenhum material da categoria "{{ categoria_atual }}" cadastrado.
-                            {% else %}
+                                {% else %}
                                 Nenhum material cadastrado ainda.
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
 </body>
+
 </html>
