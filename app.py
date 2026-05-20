@@ -81,6 +81,25 @@ def deletar_material(id):
     conn.close()
     return redirect(url_for('index'))
 
+@app.route('/editar_material/<int:id>', methods=['GET', 'POST'])
+def editar_material(id):
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    
+    if request.method == 'POST':
+        item = request.form['item']
+        categoria = request.form['categoria']
+        quantidade = request.form['quantidade']
+        
+        conn.execute('UPDATE estoque SET nome_item = ?, categoria = ?, quantidade = ? WHERE id = ?', (item, categoria, quantidade, id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('index'))
+    
+    item = conn.execute('SELECT * FROM estoque WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    return render_template('editar_material.html', item=item)
+
 
 @app.route('/agenda')
 def agenda():
@@ -123,10 +142,35 @@ def mudar_status_agenda(id, status):
 @app.route('/deletar_agendamento/<int:id>')
 def deletar_agendamento(id):
     conn = sqlite3.connect(DATABASE)
-    conn.execute('DELETE FROM agendamentos WHERE id = ?', (id))
+    conn.execute('DELETE FROM agendamentos WHERE id = ?', (id,))
     conn.commit()
     conn.close()
     return redirect(url_for('agenda'))
+
+@app.route('/editar_agendamento/<int:id>', methods=['GET', 'POST'])
+def editar_agendamento(id):
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    
+    if request.method == 'POST':
+        cliente = request.form['cliente']
+        telefone = request.form['telefone']
+        data_hora = request.form['data_hora']
+        status = request.form['status']
+        descricao = request.form['descricao']
+        
+        conn.execute('''
+            UPDATE agendamentos 
+            SET nome_cliente = ?, telefone = ?, data_hora = ?, status = ?, descricao_tatuagem = ? 
+            WHERE id = ?
+        ''', (cliente, telefone, data_hora, status, descricao, id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('agenda'))
+        
+    agendamento = conn.execute('SELECT * FROM agendamentos WHERE id = ?', (id,)).fetchone()
+    conn.close()
+    return render_template('editar_agendamento.html', agendamento=agendamento)
 
 if __name__ == '__main__':
     init_db()
