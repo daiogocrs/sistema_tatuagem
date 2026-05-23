@@ -54,14 +54,21 @@ def index():
     db = get_db()
     
     try:
+        estoque_baixo = db.execute("SELECT COUNT(*) FROM estoque WHERE quantidade < 5").fetchone()[0]
+        
+        hoje = datetime.now().strftime('%Y-%m-%d')
+        agendamentos_hoje = db.execute("SELECT COUNT(*) FROM agendamentos WHERE data_hora LIKE ?", (f"{hoje}%",)).fetchone()[0]
+
         if filtro_categoria:
             itens = db.execute('SELECT * FROM estoque WHERE categoria = ? ORDER BY nome_item', (filtro_categoria,)).fetchall()
         else:
             itens = db.execute('SELECT * FROM estoque ORDER BY categoria, nome_item').fetchall()
-        return render_template('index.html', estoque=itens, categoria_atual=filtro_categoria)
+            
+        return render_template('index.html', estoque=itens, categoria_atual=filtro_categoria, 
+                               estoque_baixo=estoque_baixo, agendamentos_hoje=agendamentos_hoje)
     except sqlite3.Error as e:
         flash(f'Erro ao carregar o estoque: {e}', 'danger')
-        return render_template('index.html', estoque=[], categoria_atual=filtro_categoria)
+        return render_template('index.html', estoque=[], categoria_atual=filtro_categoria, estoque_baixo=0, agendamentos_hoje=0)
 
 @app.route('/adicionar_material', methods=['POST'])
 def adicionar_material():
