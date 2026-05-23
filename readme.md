@@ -68,11 +68,9 @@ Abra o navegador e acesse: `http://127.0.0.1:5000`
 ├── requirements.txt
 ├── .gitignore
 └── templates/
-    ├── base.html
-    ├── index.html
     ├── agenda.html
-    ├── editar_material.html
-    └── editar_agendamento.html
+    ├── base.html
+    └── index.html
 ```
 
 Este projeto é de código aberto e livre para uso pessoal ou comercial.
