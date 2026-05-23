@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, g
+from flask import Flask, render_template, request, redirect, url_for, flash, g, send_file
 import sqlite3
 import os
 from datetime import datetime
@@ -249,6 +249,40 @@ def editar_agendamento(id):
             
     agendamento = db.execute('SELECT * FROM agendamentos WHERE id = ?', (id,)).fetchone()
     return render_template('editar_agendamento.html', agendamento=agendamento)
+
+@app.route('/backup')
+def fazer_backup():
+    try:
+        data_hoje = datetime.now().strftime('%Y-%m-%d')
+        nome_arquivo = f"backup_estudio_{data_hoje}.db"
+        
+        return send_file(DATABASE, as_attachment=True, download_name=nome_arquivo)
+    except Exception as e:
+        flash(f'Erro ao gerar o backup: {e}', 'danger')
+        return redirect(url_for('index'))
+    
+@app.route('/restaurar_backup', methods=['POST'])
+def restaurar_backup():
+    if 'arquivo_backup' not in request.files:
+        flash('Nenhum ficheiro enviado.', 'danger')
+        return redirect(url_for('index'))
+        
+    arquivo = request.files['arquivo_backup']
+    
+    if arquivo.filename == '':
+        flash('Nenhum ficheiro selecionado.', 'danger')
+        return redirect(url_for('index'))
+        
+    if arquivo and arquivo.filename.endswith('.db'):
+        try:
+            arquivo.save(DATABASE)
+            flash('Backup restaurado com sucesso! Os dados foram atualizados.', 'success')
+        except Exception as e:
+            flash(f'Erro ao restaurar o backup: {e}', 'danger')
+    else:
+        flash('Formato inválido. Por favor, envie apenas o ficheiro .db do seu backup.', 'danger')
+        
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     init_db()
