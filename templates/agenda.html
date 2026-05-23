@@ -36,9 +36,13 @@
                     <h5 class="card-title fw-bold">{{ agendamento['nome_cliente'] }}</h5>
                     <span class="badge bg-secondary">{{ agendamento['status'] }}</span>
                 </div>
-                <h6 class="card-subtitle mb-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
-                    Data: {{ agendamento['data_hora'].replace('T', ' às ') }}
+                
+                {% set partes = agendamento['data_hora'].split('T') %}
+                {% set data_partes = partes[0].split('-') %}
+                <h6 class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
+                    Data: {{ data_partes[2] }}/{{ data_partes[1] }}/{{ data_partes[0] }} às {{ partes[1] }}
                 </h6>
+
                 <p class="card-text mb-1"><small>Contato: {{ agendamento['telefone'] }}</small></p>
                 <p class="card-text"><strong>Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
 
