@@ -14,8 +14,11 @@
             <div class="col-md-3">
                 <input type="text" name="telefone" class="form-control mascara-whatsapp" placeholder="WhatsApp">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <input type="datetime-local" name="data_hora" class="form-control" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" name="valor" class="form-control" placeholder="Valor (R$)">
             </div>
             <div class="col-md-12">
                 <input type="text" name="descricao" class="form-control" placeholder="O que vai tatuar? (Ex: Fechamento braço, Maori, Traço Fino)">
@@ -45,6 +48,7 @@
 
                 <p class="card-text mb-1"><small><i class="bi bi-whatsapp me-1"></i> {{ agendamento['telefone'] }}</small></p>
                 <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
+                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{ "%.2f"|format(agendamento['valor'] or 0) }}</p>
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
@@ -87,6 +91,10 @@
                                 <option value="Pendente" {% if agendamento['status'] == 'Pendente' %}selected{% endif %}>Pendente</option>
                                 <option value="Concluído" {% if agendamento['status'] == 'Concluído' %}selected{% endif %}>Concluído</option>
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor Cobrado (R$)</label>
+                            <input type="number" step="0.01" name="valor" class="form-control" value="{{ agendamento['valor'] }}">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descrição da Tatuagem</label>

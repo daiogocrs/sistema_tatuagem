@@ -4,7 +4,8 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = 'chave_secreta_tatuagem' 
+
+app.secret_key = os.urandom(24) 
 DATABASE = 'estudio.db'
 
 def get_db():
@@ -35,7 +36,8 @@ def init_db():
             telefone TEXT,
             data_hora TEXT NOT NULL,
             descricao_tatuagem TEXT,
-            status TEXT DEFAULT 'Pendente'
+            status TEXT DEFAULT 'Pendente',
+            valor REAL DEFAULT 0.0
         )''')
         db.commit()
 
@@ -59,16 +61,21 @@ def index():
         hoje = datetime.now().strftime('%Y-%m-%d')
         agendamentos_hoje = db.execute("SELECT COUNT(*) FROM agendamentos WHERE data_hora LIKE ?", (f"{hoje}%",)).fetchone()[0]
 
+        mes_atual = datetime.now().strftime('%Y-%m')
+        faturamento = db.execute("SELECT SUM(valor) FROM agendamentos WHERE data_hora LIKE ? AND status = 'Concluído'", (f"{mes_atual}%",)).fetchone()[0]
+        faturamento_mes = faturamento if faturamento else 0.0
+
         if filtro_categoria:
             itens = db.execute('SELECT * FROM estoque WHERE categoria = ? ORDER BY nome_item', (filtro_categoria,)).fetchall()
         else:
             itens = db.execute('SELECT * FROM estoque ORDER BY categoria, nome_item').fetchall()
             
         return render_template('index.html', estoque=itens, categoria_atual=filtro_categoria, 
-                               estoque_baixo=estoque_baixo, agendamentos_hoje=agendamentos_hoje)
+                               estoque_baixo=estoque_baixo, agendamentos_hoje=agendamentos_hoje,
+                               faturamento_mes=faturamento_mes)
     except sqlite3.Error as e:
-        flash(f'Erro ao carregar o estoque: {e}', 'danger')
-        return render_template('index.html', estoque=[], categoria_atual=filtro_categoria, estoque_baixo=0, agendamentos_hoje=0)
+        flash(f'Erro ao carregar os dados: {e}', 'danger')
+        return render_template('index.html', estoque=[], categoria_atual=filtro_categoria, estoque_baixo=0, agendamentos_hoje=0, faturamento_mes=0.0)
 
 @app.route('/adicionar_material', methods=['POST'])
 def adicionar_material():
@@ -147,11 +154,12 @@ def novo_agendamento():
     telefone = request.form['telefone']
     data_hora = request.form['data_hora']
     descricao = request.form['descricao']
+    valor = request.form['valor'] or 0.0 
     
     db = get_db()
     try:
-        db.execute('INSERT INTO agendamentos (nome_cliente, telefone, data_hora, descricao_tatuagem) VALUES (?, ?, ?, ?)', 
-                     (cliente, telefone, data_hora, descricao))
+        db.execute('INSERT INTO agendamentos (nome_cliente, telefone, data_hora, descricao_tatuagem, valor) VALUES (?, ?, ?, ?, ?)', 
+                     (cliente, telefone, data_hora, descricao, float(valor)))
         db.commit()
         flash('Sessão agendada com sucesso!', 'success')
     except sqlite3.Error:
@@ -190,13 +198,14 @@ def editar_agendamento(id):
         data_hora = request.form['data_hora']
         status = request.form['status']
         descricao = request.form['descricao']
+        valor = request.form['valor'] or 0.0
         
         try:
             db.execute('''
                 UPDATE agendamentos 
-                SET nome_cliente = ?, telefone = ?, data_hora = ?, status = ?, descricao_tatuagem = ? 
+                SET nome_cliente = ?, telefone = ?, data_hora = ?, status = ?, descricao_tatuagem = ?, valor = ?
                 WHERE id = ?
-            ''', (cliente, telefone, data_hora, status, descricao, id))
+            ''', (cliente, telefone, data_hora, status, descricao, float(valor), id))
             db.commit()
             flash('Agendamento atualizado com sucesso!', 'success')
             return redirect(url_for('agenda'))

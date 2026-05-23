@@ -4,23 +4,34 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-md-4">
         <div class="card text-white bg-dark shadow-sm h-100">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-calendar-event fs-1 me-3"></i>
                 <div>
-                    <h5 class="card-title mb-0 text-white-50">Agendamentos para Hoje</h5>
+                    <h5 class="card-title mb-0 text-white-50">Agendamentos Hoje</h5>
                     <p class="card-text fs-3 fw-bold mb-0">{{ agendamentos_hoje }}</p>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="card text-white bg-success shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <i class="bi bi-currency-dollar fs-1 me-3"></i>
+                <div>
+                    <h5 class="card-title mb-0 text-white-50">Faturamento no Mês</h5>
+                    <p class="card-text fs-3 fw-bold mb-0">R$ {{ "%.2f"|format(faturamento_mes) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
         <div class="card text-white bg-danger shadow-sm h-100">
             <div class="card-body d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle fs-1 me-3"></i>
                 <div>
-                    <h5 class="card-title mb-0 text-white-50">Agulhas/Outros com Estoque Baixo (< 5)</h5>
+                    <h5 class="card-title mb-0 text-white-50">Estoque Baixo (< 5)</h5>
                     <p class="card-text fs-3 fw-bold mb-0">{{ estoque_baixo }}</p>
                 </div>
             </div>
