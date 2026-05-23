@@ -54,7 +54,7 @@ def index():
     db = get_db()
     
     try:
-        estoque_baixo = db.execute("SELECT COUNT(*) FROM estoque WHERE quantidade < 5").fetchone()[0]
+        estoque_baixo = db.execute("SELECT COUNT(*) FROM estoque WHERE quantidade < 5 AND categoria != 'Tintas'").fetchone()[0]
         
         hoje = datetime.now().strftime('%Y-%m-%d')
         agendamentos_hoje = db.execute("SELECT COUNT(*) FROM agendamentos WHERE data_hora LIKE ?", (f"{hoje}%",)).fetchone()[0]
