@@ -10,7 +10,7 @@
                 <h4 class="mb-0">Editar Material</h4>
             </div>
             <div class="card-body">
-                <form action="/editar_material/{{ item['id'] }}" method="POST" class="row g-3">
+                <form action="{{ url_for('editar_material', id=item['id']) }}" method="POST" class="row g-3">
                     <div class="col-12">
                         <label class="form-label">Nome do Material</label>
                         <input type="text" name="item" class="form-control" value="{{ item['nome_item'] }}" required>
@@ -28,7 +28,7 @@
                         <input type="number" name="quantidade" class="form-control" value="{{ item['quantidade'] }}" required>
                     </div>
                     <div class="col-12 d-flex justify-content-between mt-4">
-                        <a href="/" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-dark">Salvar Alterações</button>
                     </div>
                 </form>

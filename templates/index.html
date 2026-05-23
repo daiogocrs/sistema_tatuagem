@@ -7,7 +7,7 @@
 
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
-        <form action="/adicionar_material" method="POST" class="row g-3">
+        <form action="{{ url_for('adicionar_material') }}" method="POST" class="row g-3">
             <div class="col-md-4">
                 <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta" required>
             </div>
@@ -31,10 +31,10 @@
 
 <div class="d-flex justify-content-center mb-3">
     <div class="btn-group shadow-sm" role="group">
-        <a href="/" class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
-        <a href="/?categoria=Agulhas" class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
-        <a href="/?categoria=Tintas" class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
-        <a href="/?categoria=Outros" class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
+        <a href="{{ url_for('index', categoria='Agulhas') }}" class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
+        <a href="{{ url_for('index', categoria='Tintas') }}" class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
+        <a href="{{ url_for('index', categoria='Outros') }}" class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
     </div>
 </div>
 
@@ -63,13 +63,13 @@
                     </td>
                     <td class="fw-bold">{{ item['nome_item'] }}</td>
                     <td>
-                        <a href="/alterar_quantidade/{{ item['id'] }}/menos" class="btn btn-sm btn-outline-secondary fw-bold px-2">-</a>
+                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='menos') }}" class="btn btn-sm btn-outline-secondary fw-bold px-2">-</a>
                         <span class="mx-2 fs-5">{{ item['quantidade'] }}</span>
-                        <a href="/alterar_quantidade/{{ item['id'] }}/mais" class="btn btn-sm btn-outline-secondary fw-bold px-2">+</a>
+                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='mais') }}" class="btn btn-sm btn-outline-secondary fw-bold px-2">+</a>
                     </td>
                     <td class="text-end">
-                        <a href="/editar_material/{{ item['id'] }}" class="btn btn-sm btn-warning me-1">Editar</a>
-                        <a href="/deletar_material/{{ item['id'] }}" class="btn btn-sm btn-danger">Excluir</a>
+                        <a href="{{ url_for('editar_material', id=item['id']) }}" class="btn btn-sm btn-warning me-1">Editar</a>
+                        <a href="{{ url_for('deletar_material', id=item['id']) }}" class="btn btn-sm btn-danger">Excluir</a>
                     </td>
                 </tr>
                 {% else %}

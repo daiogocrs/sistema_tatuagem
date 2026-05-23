@@ -10,7 +10,7 @@
                 <h4 class="mb-0">Editar Sessão</h4>
             </div>
             <div class="card-body">
-                <form action="/editar_agendamento/{{ agendamento['id'] }}" method="POST" class="row g-3">
+                <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST" class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Nome do Cliente</label>
                         <input type="text" name="cliente" class="form-control" value="{{ agendamento['nome_cliente'] }}" required>
@@ -35,7 +35,7 @@
                         <input type="text" name="descricao" class="form-control" value="{{ agendamento['descricao_tatuagem'] }}">
                     </div>
                     <div class="col-12 d-flex justify-content-between mt-4">
-                        <a href="/agenda" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-dark">Salvar Alterações</button>
                     </div>
                 </form>

@@ -7,7 +7,7 @@
 
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
-        <form action="/novo_agendamento" method="POST" class="row g-3">
+        <form action="{{ url_for('novo_agendamento') }}" method="POST" class="row g-3">
             <div class="col-md-3">
                 <input type="text" name="cliente" class="form-control" placeholder="Nome do Cliente" required>
             </div>
@@ -48,12 +48,12 @@
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
-                    <a href="/mudar_status_agenda/{{ agendamento['id'] }}/Concluído" class="btn btn-sm btn-success">Marcar Concluído</a>
+                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Concluído') }}" class="btn btn-sm btn-success">Marcar Concluído</a>
                     {% else %}
-                    <a href="/mudar_status_agenda/{{ agendamento['id'] }}/Pendente" class="btn btn-sm btn-warning">Desfazer</a>
+                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Pendente') }}" class="btn btn-sm btn-warning">Desfazer</a>
                     {% endif %}
-                    <a href="/editar_agendamento/{{ agendamento['id'] }}" class="btn btn-sm btn-light border ms-1">Editar</a>
-                    <a href="/deletar_agendamento/{{ agendamento['id'] }}" class="btn btn-sm btn-danger float-end">Excluir</a>
+                    <a href="{{ url_for('editar_agendamento', id=agendamento['id']) }}" class="btn btn-sm btn-light border ms-1">Editar</a>
+                    <a href="{{ url_for('deletar_agendamento', id=agendamento['id']) }}" class="btn btn-sm btn-danger float-end">Excluir</a>
                 </div>
             </div>
         </div>
