@@ -2,11 +2,28 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g
 import sqlite3
 import os
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 
 app.secret_key = os.urandom(24) 
 DATABASE = 'estudio.db'
+
+@app.template_filter('formatar_data')
+def formatar_data(data_string):
+    """Transforma 'YYYY-MM-DDTHH:MM' em 'DD/MM/YYYY às HH:MM'"""
+    try:
+        data_obj = datetime.strptime(data_string, '%Y-%m-%dT%H:%M')
+        return data_obj.strftime('%d/%m/%Y às %H:%M')
+    except ValueError:
+        return data_string
+
+@app.template_filter('limpar_telefone')
+def limpar_telefone(telefone_string):
+    """Remove parênteses, traços e espaços para o link do WhatsApp"""
+    if not telefone_string:
+        return ""
+    return re.sub(r'\D', '', telefone_string)
 
 def get_db():
     db = getattr(g, '_database', None)

@@ -43,10 +43,21 @@
                 {% set partes = agendamento['data_hora'].split('T') %}
                 {% set data_partes = partes[0].split('-') %}
                 <h6 class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
-                    <i class="bi bi-clock me-1"></i> Data: {{ data_partes[2] }}/{{ data_partes[1] }}/{{ data_partes[0] }} às {{ partes[1] }}
+                    <i class="bi bi-clock me-1"></i> Data: {{ agendamento['data_hora'] | formatar_data }}
                 </h6>
 
-                <p class="card-text mb-1"><small><i class="bi bi-whatsapp me-1"></i> {{ agendamento['telefone'] }}</small></p>
+                <p class="card-text mb-1">
+                    <small>
+                        <i class="bi bi-whatsapp me-1"></i> 
+                        {% if agendamento['telefone'] %}
+                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}" target="_blank" class="text-decoration-none fw-bold {% if agendamento['status'] == 'Concluído' %}text-white{% else %}text-success{% endif %}">
+                            {{ agendamento['telefone'] }}
+                        </a>
+                        {% else %}
+                        <span class="text-muted">Sem contato</span>
+                        {% endif %}
+                    </small>
+                </p>
                 <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
                 <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{ "%.2f"|format(agendamento['valor'] or 0) }}</p>
 
