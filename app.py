@@ -83,6 +83,10 @@ def adicionar_material():
     categoria = request.form['categoria']
     quantidade = request.form['quantidade']
     
+    if int(quantidade) < 0:
+        flash('Erro: A quantidade não pode ser negativa!', 'danger')
+        return redirect(url_for('index'))
+    
     db = get_db()
     try:
         db.execute('INSERT INTO estoque (nome_item, categoria, quantidade) VALUES (?, ?, ?)', (item, categoria, quantidade))
@@ -125,6 +129,11 @@ def editar_material(id):
         item = request.form['item']
         categoria = request.form['categoria']
         quantidade = request.form['quantidade']
+        
+        if int(quantidade) < 0:
+            flash('Erro: A quantidade não pode ser negativa!', 'danger')
+            return redirect(url_for('index'))
+            
         try:
             db.execute('UPDATE estoque SET nome_item = ?, categoria = ?, quantidade = ? WHERE id = ?', (item, categoria, quantidade, id))
             db.commit()
@@ -154,7 +163,11 @@ def novo_agendamento():
     telefone = request.form['telefone']
     data_hora = request.form['data_hora']
     descricao = request.form['descricao']
-    valor = request.form['valor'] or 0.0 
+    valor = request.form['valor'] or 0.0
+    
+    if float(valor) < 0:
+        flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
+        return redirect(url_for('agenda'))
     
     db = get_db()
     try:
@@ -199,6 +212,10 @@ def editar_agendamento(id):
         status = request.form['status']
         descricao = request.form['descricao']
         valor = request.form['valor'] or 0.0
+        
+        if float(valor) < 0:
+            flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
+            return redirect(url_for('agenda'))
         
         try:
             db.execute('''
