@@ -32,7 +32,7 @@
                 <i class="bi bi-exclamation-triangle fs-1 me-3"></i>
                 <div>
                     <h5 class="card-title mb-0 text-white-50">Estoque Baixo (< 5)</h5>
-                    <p class="card-text fs-3 fw-bold mb-0">{{ estoque_baixo }}</p>
+                            <p class="card-text fs-3 fw-bold mb-0">{{ estoque_baixo }}</p>
                 </div>
             </div>
         </div>
@@ -44,9 +44,10 @@
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
         <form action="{{ url_for('adicionar_material') }}" method="POST" class="row g-3">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <div class="col-md-4">
-                <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta" required>
+                <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta"
+                    required>
             </div>
             <div class="col-md-3">
                 <select name="categoria" class="form-select" required>
@@ -68,10 +69,14 @@
 
 <div class="d-flex justify-content-center mb-3">
     <div class="btn-group shadow-sm" role="group">
-        <a href="{{ url_for('index') }}" class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
-        <a href="{{ url_for('index', categoria='Agulhas') }}" class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
-        <a href="{{ url_for('index', categoria='Tintas') }}" class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
-        <a href="{{ url_for('index', categoria='Outros') }}" class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
+        <a href="{{ url_for('index') }}"
+            class="btn btn-outline-dark {% if not categoria_atual %}active{% endif %}">Todos</a>
+        <a href="{{ url_for('index', categoria='Agulhas') }}"
+            class="btn btn-outline-primary {% if categoria_atual == 'Agulhas' %}active{% endif %}">Agulhas</a>
+        <a href="{{ url_for('index', categoria='Tintas') }}"
+            class="btn btn-outline-success {% if categoria_atual == 'Tintas' %}active{% endif %}">Tintas</a>
+        <a href="{{ url_for('index', categoria='Outros') }}"
+            class="btn btn-outline-secondary {% if categoria_atual == 'Outros' %}active{% endif %}">Outros</a>
     </div>
 </div>
 
@@ -100,13 +105,22 @@
                     </td>
                     <td class="fw-bold">{{ item['nome_item'] }}</td>
                     <td>
-                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='menos') }}" class="btn btn-sm btn-outline-secondary px-2"><i class="bi bi-dash"></i></a>
+                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='menos') }}"
+                            class="btn btn-sm btn-outline-secondary px-2"><i class="bi bi-dash"></i></a>
                         <span class="mx-2 fs-5 fw-bold">{{ item['quantidade'] }}</span>
-                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='mais') }}" class="btn btn-sm btn-outline-secondary px-2"><i class="bi bi-plus"></i></a>
+                        <a href="{{ url_for('alterar_quantidade', id=item['id'], acao='mais') }}"
+                            class="btn btn-sm btn-outline-secondary px-2"><i class="bi bi-plus"></i></a>
                     </td>
                     <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-warning me-1" data-bs-toggle="modal" data-bs-target="#modalEditarMaterial{{ item['id'] }}" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <a href="{{ url_for('deletar_material', id=item['id']) }}" class="btn btn-sm btn-danger" onclick="return confirm('Excluir este material?');" title="Excluir"><i class="bi bi-trash"></i></a>
+                        <button type="button" class="btn btn-sm btn-warning me-1" data-bs-toggle="modal"
+                            data-bs-target="#modalEditarMaterial{{ item['id'] }}" title="Editar"><i
+                                class="bi bi-pencil"></i></button>
+                        <form action="{{ url_for('deletar_material', id=item['id']) }}" method="POST" class="d-inline"
+                            onsubmit="return confirm('Tem a certeza que deseja excluir este material?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit" class="btn btn-sm btn-danger" title="Excluir"><i
+                                    class="bi bi-trash"></i></button>
+                        </form>
                     </td>
                 </tr>
 
@@ -115,31 +129,39 @@
                         <div class="modal-content">
                             <div class="modal-header bg-dark text-white">
                                 <h5 class="modal-title">Editar Material</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
                             </div>
                             <form action="{{ url_for('editar_material', id=item['id']) }}" method="POST">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <div class="modal-body row g-3 text-start">
                                     <div class="col-12">
                                         <label class="form-label">Nome do Material</label>
-                                        <input type="text" name="item" class="form-control" value="{{ item['nome_item'] }}" required>
+                                        <input type="text" name="item" class="form-control"
+                                            value="{{ item['nome_item'] }}" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Categoria</label>
                                         <select name="categoria" class="form-select" required>
-                                            <option value="Agulhas" {% if item['categoria'] == 'Agulhas' %}selected{% endif %}>Agulhas</option>
-                                            <option value="Tintas" {% if item['categoria'] == 'Tintas' %}selected{% endif %}>Tintas</option>
-                                            <option value="Outros" {% if item['categoria'] == 'Outros' %}selected{% endif %}>Outros</option>
+                                            <option value="Agulhas" {% if item['categoria']=='Agulhas' %}selected{%
+                                                endif %}>Agulhas</option>
+                                            <option value="Tintas" {% if item['categoria']=='Tintas' %}selected{% endif
+                                                %}>Tintas</option>
+                                            <option value="Outros" {% if item['categoria']=='Outros' %}selected{% endif
+                                                %}>Outros</option>
                                         </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Quantidade</label>
-                                        <input type="number" name="quantidade" class="form-control" value="{{ item['quantidade'] }}" required>
+                                        <input type="number" name="quantidade" class="form-control"
+                                            value="{{ item['quantidade'] }}" required>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i> Salvar</button>
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i>
+                                        Salvar</button>
                                 </div>
                             </form>
                         </div>
@@ -158,13 +180,15 @@
 <nav aria-label="Navegação de páginas">
     <ul class="pagination justify-content-center mt-4">
         <li class="page-item {% if page == 1 %}disabled{% endif %}">
-            <a class="page-link text-dark" href="{{ url_for('index', page=page-1, categoria=categoria_atual) }}">Anterior</a>
+            <a class="page-link text-dark"
+                href="{{ url_for('index', page=page-1, categoria=categoria_atual) }}">Anterior</a>
         </li>
         <li class="page-item disabled">
             <span class="page-link text-muted">Página {{ page }} de {{ total_pages }}</span>
         </li>
         <li class="page-item {% if page == total_pages %}disabled{% endif %}">
-            <a class="page-link text-dark" href="{{ url_for('index', page=page+1, categoria=categoria_atual) }}">Próxima</a>
+            <a class="page-link text-dark"
+                href="{{ url_for('index', page=page+1, categoria=categoria_atual) }}">Próxima</a>
         </li>
     </ul>
 </nav>

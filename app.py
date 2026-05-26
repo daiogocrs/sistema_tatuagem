@@ -7,7 +7,7 @@ import json
 import re
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) 
+app.secret_key = 'chave-secreta-estudio-tatuagem-segura' # Pode inventar qualquer frase aqui 
 csrf = CSRFProtect(app) 
 DATABASE = 'estudio.db'
 
@@ -130,11 +130,12 @@ def alterar_quantidade(id, acao):
     db.commit()
     return redirect(url_for('index'))
 
-@app.route('/deletar_material/<int:id>')
+@app.route('/deletar_material/<int:id>', methods=['POST'])
 def deletar_material(id):
     db = get_db()
     db.execute('DELETE FROM estoque WHERE id = ?', (id,))
     db.commit()
+    flash('Material excluído com sucesso.', 'success')
     return redirect(url_for('index'))
 
 @app.route('/editar_material/<int:id>', methods=['POST'])
@@ -212,12 +213,13 @@ def mudar_status_agenda(id, status):
     db.commit()
     return redirect(url_for('agenda'))
 
-@app.route('/deletar_agendamento/<int:id>')
+@app.route('/deletar_agendamento/<int:id>', methods=['POST'])
 def deletar_agendamento(id):
     db = get_db()
     db.execute('DELETE FROM agendamento_materiais WHERE agendamento_id = ?', (id,))
     db.execute('DELETE FROM agendamentos WHERE id = ?', (id,))
     db.commit()
+    flash('Agendamento excluído com sucesso.', 'success')
     return redirect(url_for('agenda'))
 
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
@@ -236,7 +238,22 @@ def fazer_backup():
 def restaurar_backup():
     arquivo = request.files.get('arquivo_backup')
     if arquivo and arquivo.filename.endswith('.db'):
-        arquivo.save(DATABASE)
+        temp_path = DATABASE + '.tmp'
+        arquivo.save(temp_path) 
+        
+        try:
+            conn = sqlite3.connect(temp_path)
+            conn.execute('SELECT 1 FROM sqlite_master LIMIT 1')
+            conn.close()
+            
+            if os.path.exists(DATABASE):
+                os.remove(DATABASE)
+            os.rename(temp_path, DATABASE)
+            flash('Backup restaurado com sucesso!', 'success')
+        except sqlite3.Error:
+            os.remove(temp_path) 
+            flash('Erro: O ficheiro enviado não é um backup válido.', 'danger')
+            
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
