@@ -2,11 +2,16 @@ from flask import Flask, render_template, request, redirect, url_for, flash, g, 
 from flask_wtf.csrf import CSRFProtect
 import sqlite3
 import os
+import sys
 from datetime import datetime, timedelta
 import json
 import re
 
-app = Flask(__name__)
+if getattr(sys, 'frozen', False):
+    template_folder = os.path.join(sys._MEIPASS, 'templates')
+    app = Flask(__name__, template_folder=template_folder)
+else:
+    app = Flask(__name__)
 app.secret_key = 'chave-secreta-estudio-tatuagem-segura' # Pode inventar qualquer frase aqui 
 csrf = CSRFProtect(app) 
 DATABASE = 'estudio.db'
@@ -226,7 +231,9 @@ def editar_agendamento(id):
 
 @app.route('/backup')
 def fazer_backup():
-    return send_file(DATABASE, as_attachment=True, download_name=f"backup_estudio_{datetime.now().strftime('%Y-%m-%d')}.db")
+    caminho_absoluto = os.path.abspath(DATABASE)
+    
+    return send_file(caminho_absoluto, as_attachment=True, download_name=f"backup_estudio_{datetime.now().strftime('%Y-%m-%d')}.db")
     
 @app.route('/restaurar_backup', methods=['POST'])
 def restaurar_backup():
@@ -256,5 +263,14 @@ def restaurar_backup():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
+    import webbrowser
+    from threading import Timer
+
+    def abrir_navegador():
+        webbrowser.open("http://127.0.0.1:5000")
+
     init_db()
-    app.run(debug=True)
+    
+    Timer(1.5, abrir_navegador).start()
+    
+    app.run(debug=False)

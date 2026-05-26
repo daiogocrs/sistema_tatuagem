@@ -1,13 +1,16 @@
 *.db
 *.sqlite3
-*.bat
 estudio.db
+
+venv/
+env/
+.env
 
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-venv/
-env/
-.env
+build/
+dist/
+*.spec
