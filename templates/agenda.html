@@ -8,6 +8,8 @@
 <div class="card mb-4 shadow-sm border-dark">
     <div class="card-body">
         <form action="{{ url_for('novo_agendamento') }}" method="POST" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
             <div class="col-md-3">
                 <input type="text" name="cliente" class="form-control" placeholder="Nome do Cliente" required>
             </div>
@@ -46,21 +48,17 @@
 <div class="row">
     {% for agendamento in agendamentos %}
     <div class="col-md-6 mb-3">
-        <div
-            class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
+        <div class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
-                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente']
-                        }}</h5>
+                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente'] }}</h5>
                     <span class="badge bg-dark">{{ agendamento['status'] }}</span>
                 </div>
 
-                <h6
-                    class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
+                <h6 class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
                     <i class="bi bi-clock me-1"></i> Início: {{ agendamento['data_hora'] | formatar_data }}
                     {% if agendamento['data_hora_fim'] %}
-                    <br><i class="bi bi-box-arrow-right me-1"></i> Fim: {{ agendamento['data_hora_fim'] | formatar_data
-                    }}
+                    <br><i class="bi bi-box-arrow-right me-1"></i> Fim: {{ agendamento['data_hora_fim'] | formatar_data }}
                     {% endif %}
                 </h6>
 
@@ -77,20 +75,18 @@
                         {% endif %}
                     </small>
                 </p>
-                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{
-                    agendamento['descricao_tatuagem'] }}</p>
-                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{
-                    "%.2f"|format(agendamento['valor'] or 0) }}</p>
+                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
+                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{ "%.2f"|format(agendamento['valor'] or 0) }}</p>
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
-                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Concluído') }}"
-                        class="btn btn-sm btn-success" title="Marcar Concluído"><i class="bi bi-check-circle"></i>
-                        Concluir</a>
+                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal"
+                        data-bs-target="#modalConcluirAgenda{{ agendamento['id'] }}"
+                        title="Concluir e Baixar Estoque"><i class="bi bi-check-circle"></i> Concluir Sessão</button>
                     {% else %}
                     <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Pendente') }}"
-                        class="btn btn-sm btn-warning" title="Desfazer"><i class="bi bi-arrow-counterclockwise"></i>
-                        Desfazer</a>
+                        class="btn btn-sm btn-warning" title="Desfazer e Devolver ao Estoque"><i
+                            class="bi bi-arrow-counterclockwise"></i> Desfazer</a>
                     {% endif %}
 
                     <button type="button" class="btn btn-sm btn-light border ms-1" data-bs-toggle="modal"
@@ -100,113 +96,169 @@
                         class="btn btn-sm btn-danger float-end" onclick="return confirm('Excluir este agendamento?');"
                         title="Excluir"><i class="bi bi-trash"></i></a>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="modal fade" id="modalEditarAgenda{{ agendamento['id'] }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-dark text-white">
-                    <h5 class="modal-title">Editar Sessão</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                <div class="modal fade" id="modalConcluirAgenda{{ agendamento['id'] }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-success text-white">
+                                <h5 class="modal-title">Finalizar e Baixar Estoque</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ url_for('concluir_agendamento', id=agendamento['id']) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <div class="modal-body text-dark">
+                                    <p>O que você usou na tatuagem de <strong>{{ agendamento['nome_cliente'] }}</strong>? <em>(Opcional)</em></p>
+                                    <div id="materiaisContainer{{ agendamento['id'] }}">
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="adicionarMaterial('materiaisContainer{{ agendamento['id'] }}')">
+                                        <i class="bi bi-plus"></i> Inserir Material Usado
+                                    </button>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Pular e Concluir</button>
+                                    <button type="submit" class="btn btn-success"><i class="bi bi-check2-all"></i> Concluir com Baixa</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-                <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST">
-                    <div class="modal-body row g-3 text-start text-dark">
-                        <div class="col-md-6">
-                            <label class="form-label">Nome do Cliente</label>
-                            <input type="text" name="cliente" class="form-control"
-                                value="{{ agendamento['nome_cliente'] }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">WhatsApp</label>
-                            <input type="text" name="telefone" class="form-control mascara-whatsapp"
-                                value="{{ agendamento['telefone'] }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Início da Sessão</label>
-                            <input type="datetime-local" name="data_hora" class="form-control"
-                                value="{{ agendamento['data_hora'] }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Previsão de Fim</label>
-                            <input type="datetime-local" name="data_hora_fim" class="form-control"
-                                value="{{ agendamento['data_hora_fim'] or agendamento['data_hora'] }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select" required>
-                                <option value="Pendente" {% if agendamento['status']=='Pendente' %}selected{% endif %}>
-                                    Pendente</option>
-                                <option value="Concluído" {% if agendamento['status']=='Concluído' %}selected{% endif
-                                    %}>Concluído</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Valor Cobrado (R$)</label>
-                            <input type="number" step="0.01" name="valor" class="form-control"
-                                value="{{ agendamento['valor'] }}">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Descrição da Tatuagem</label>
-                            <input type="text" name="descricao" class="form-control"
-                                value="{{ agendamento['descricao_tatuagem'] }}">
+
+                <div class="modal fade" id="modalEditarAgenda{{ agendamento['id'] }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-dark text-white">
+                                <h5 class="modal-title">Editar Sessão</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                
+                                <div class="modal-body row g-3 text-start text-dark">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nome do Cliente</label>
+                                        <input type="text" name="cliente" class="form-control"
+                                            value="{{ agendamento['nome_cliente'] }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">WhatsApp</label>
+                                        <input type="text" name="telefone" class="form-control mascara-whatsapp"
+                                            value="{{ agendamento['telefone'] }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Início da Sessão</label>
+                                        <input type="datetime-local" name="data_hora" class="form-control"
+                                            value="{{ agendamento['data_hora'] }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Previsão de Fim</label>
+                                        <input type="datetime-local" name="data_hora_fim" class="form-control"
+                                            value="{{ agendamento['data_hora_fim'] or agendamento['data_hora'] }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Status</label>
+                                        <select name="status" class="form-select" required>
+                                            <option value="Pendente" {% if agendamento['status']=='Pendente' %}selected{% endif %}>
+                                                Pendente</option>
+                                            <option value="Concluído" {% if agendamento['status']=='Concluído' %}selected{% endif %}>Concluído</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Valor Cobrado (R$)</label>
+                                        <input type="number" step="0.01" name="valor" class="form-control"
+                                            value="{{ agendamento['valor'] }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Descrição da Tatuagem</label>
+                                        <input type="text" name="descricao" class="form-control"
+                                            value="{{ agendamento['descricao_tatuagem'] }}">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i> Salvar</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i> Salvar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% else %}
+                </div>
+            </div> </div> </div> {% else %}
     <div class="col-12">
         <div class="alert alert-secondary text-center" role="alert">
             <i class="bi bi-inbox fs-4 d-block mb-2"></i> Nenhum cliente agendado.
         </div>
     </div>
-    {% endfor %}
+    {% endfor %} </div> <nav aria-label="Navegação de agenda" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+            <a class="page-link text-dark" href="{{ url_for('agenda', page=page-1) }}">Anterior</a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link text-muted">Página {{ page }} de {{ total_pages }}</span>
+        </li>
+        <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+            <a class="page-link text-dark" href="{{ url_for('agenda', page=page+1) }}">Próxima</a>
+        </li>
+    </ul>
+</nav>
+
+<div id="templateMaterial" class="d-none">
+    <div class="row mb-2 material-row">
+        <div class="col-8">
+            <select name="material_id[]" class="form-select">
+                <option value="" disabled selected>Escolha um item da prateleira...</option>
+                {% for item in estoque_disponivel %}
+                <option value="{{ item['id'] }}">{{ item['nome_item'] }} (Restam: {{ item['quantidade'] }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-3">
+            <input type="number" name="material_qtd[]" class="form-control" placeholder="Quantos?" min="1">
+        </div>
+        <div class="col-1">
+            <button type="button" class="btn btn-outline-danger" onclick="this.closest('.material-row').remove()"><i class="bi bi-trash"></i></button>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/pt-br.global.min.js'></script>
-
 <script>
+    function adicionarMaterial(containerId) {
+        const template = document.getElementById('templateMaterial').innerHTML;
+        document.getElementById(containerId).insertAdjacentHTML('beforeend', template);
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendario');
 
-        var eventos = {{ eventos_json | safe
-    }};
+        var eventos = {{ eventos_json | safe }};
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'pt-br',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        slotMinTime: '06:00:00',
-        slotMaxTime: '24:00:00',
-        allDaySlot: false,
-        events: eventos,
-        eventClick: function (info) {
-            info.jsEvent.preventDefault();
-            var modalId = '#modalEditarAgenda' + info.event.id;
-            var modalElement = document.querySelector(modalId);
-            if (modalElement) {
-                var modal = new bootstrap.Modal(modalElement);
-                modal.show();
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'pt-br',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            allDaySlot: false,
+            events: eventos,
+            eventClick: function (info) {
+                info.jsEvent.preventDefault();
+                var modalId = '#modalEditarAgenda' + info.event.id;
+                var modalElement = document.querySelector(modalId);
+                if (modalElement) {
+                    var modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
             }
-        }
-    });
+        });
 
-    calendar.render();
+        calendar.render();
     });
 
     const inputData = document.querySelector('input[name="data_hora"]');

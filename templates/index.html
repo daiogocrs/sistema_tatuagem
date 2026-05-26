@@ -44,6 +44,7 @@
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
         <form action="{{ url_for('adicionar_material') }}" method="POST" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="col-md-4">
                 <input type="text" name="item" class="form-control" placeholder="Ex: Agulha RL 03, Viper Preta" required>
             </div>
@@ -117,6 +118,7 @@
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <form action="{{ url_for('editar_material', id=item['id']) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <div class="modal-body row g-3 text-start">
                                     <div class="col-12">
                                         <label class="form-label">Nome do Material</label>
@@ -152,4 +154,18 @@
         </table>
     </div>
 </div>
+
+<nav aria-label="Navegação de páginas">
+    <ul class="pagination justify-content-center mt-4">
+        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+            <a class="page-link text-dark" href="{{ url_for('index', page=page-1, categoria=categoria_atual) }}">Anterior</a>
+        </li>
+        <li class="page-item disabled">
+            <span class="page-link text-muted">Página {{ page }} de {{ total_pages }}</span>
+        </li>
+        <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+            <a class="page-link text-dark" href="{{ url_for('index', page=page+1, categoria=categoria_atual) }}">Próxima</a>
+        </li>
+    </ul>
+</nav>
 {% endblock %}

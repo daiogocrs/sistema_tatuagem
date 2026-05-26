@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, g, send_file
+from flask_wtf.csrf import CSRFProtect
 import sqlite3
 import os
 from datetime import datetime, timedelta
@@ -6,15 +7,13 @@ import json
 import re
 
 app = Flask(__name__)
-
 app.secret_key = os.urandom(24) 
+csrf = CSRFProtect(app) 
 DATABASE = 'estudio.db'
 
 @app.template_filter('formatar_data')
 def formatar_data(data_string):
-    """Transforma 'YYYY-MM-DDTHH:MM' em 'DD/MM/YYYY às HH:MM'"""
-    if not data_string:
-        return ""
+    if not data_string: return ""
     try:
         data_obj = datetime.strptime(data_string, '%Y-%m-%dT%H:%M')
         return data_obj.strftime('%d/%m/%Y às %H:%M')
@@ -23,9 +22,7 @@ def formatar_data(data_string):
 
 @app.template_filter('limpar_telefone')
 def limpar_telefone(telefone_string):
-    """Remove parênteses, traços e espaços para o link do WhatsApp"""
-    if not telefone_string:
-        return ""
+    if not telefone_string: return ""
     return re.sub(r'\D', '', telefone_string)
 
 def get_db():
@@ -50,7 +47,6 @@ def init_db():
             categoria TEXT NOT NULL,
             quantidade INTEGER NOT NULL
         )''')
-        
         db.execute('''CREATE TABLE IF NOT EXISTS agendamentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_cliente TEXT NOT NULL,
@@ -61,7 +57,15 @@ def init_db():
             status TEXT DEFAULT 'Pendente',
             valor REAL DEFAULT 0.0
         )''')
-            
+        db.execute('''CREATE TABLE IF NOT EXISTS agendamento_materiais (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agendamento_id INTEGER,
+            material_id INTEGER,
+            quantidade INTEGER,
+            FOREIGN KEY(agendamento_id) REFERENCES agendamentos(id),
+            FOREIGN KEY(material_id) REFERENCES estoque(id)
+        )''')
+        
         db.commit()
 
 def atualizar_status_passado():
@@ -71,229 +75,168 @@ def atualizar_status_passado():
         db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE COALESCE(data_hora_fim, data_hora) < ? AND status = 'Pendente'", (agora,))
         db.commit()
     except sqlite3.Error as e:
-        print(f"Erro ao atualizar status automático: {e}")
+        pass
 
 @app.route('/')
 def index():
     filtro_categoria = request.args.get('categoria')
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
     db = get_db()
     
     try:
         estoque_baixo = db.execute("SELECT COUNT(*) FROM estoque WHERE quantidade < 5 AND categoria != 'Tintas'").fetchone()[0]
-        
         hoje = datetime.now().strftime('%Y-%m-%d')
         agendamentos_hoje = db.execute("SELECT COUNT(*) FROM agendamentos WHERE data_hora LIKE ?", (f"{hoje}%",)).fetchone()[0]
-
-        mes_atual = datetime.now().strftime('%Y-%m')
-        faturamento = db.execute("SELECT SUM(valor) FROM agendamentos WHERE data_hora LIKE ? AND status = 'Concluído'", (f"{mes_atual}%",)).fetchone()[0]
+        faturamento = db.execute("SELECT SUM(valor) FROM agendamentos WHERE data_hora LIKE ? AND status = 'Concluído'", (f"{datetime.now().strftime('%Y-%m')}%",)).fetchone()[0]
         faturamento_mes = faturamento if faturamento else 0.0
 
         if filtro_categoria:
-            itens = db.execute('SELECT * FROM estoque WHERE categoria = ? ORDER BY nome_item', (filtro_categoria,)).fetchall()
+            total = db.execute('SELECT COUNT(*) FROM estoque WHERE categoria = ?', (filtro_categoria,)).fetchone()[0]
+            itens = db.execute('SELECT * FROM estoque WHERE categoria = ? ORDER BY nome_item LIMIT ? OFFSET ?', (filtro_categoria, per_page, offset)).fetchall()
         else:
-            itens = db.execute('SELECT * FROM estoque ORDER BY categoria, nome_item').fetchall()
+            total = db.execute('SELECT COUNT(*) FROM estoque').fetchone()[0]
+            itens = db.execute('SELECT * FROM estoque ORDER BY categoria, nome_item LIMIT ? OFFSET ?', (per_page, offset)).fetchall()
+            
+        total_pages = max(1, (total + per_page - 1) // per_page)
             
         return render_template('index.html', estoque=itens, categoria_atual=filtro_categoria, 
                                estoque_baixo=estoque_baixo, agendamentos_hoje=agendamentos_hoje,
-                               faturamento_mes=faturamento_mes)
+                               faturamento_mes=faturamento_mes, page=page, total_pages=total_pages)
     except sqlite3.Error as e:
-        flash(f'Erro ao carregar os dados: {e}', 'danger')
-        return render_template('index.html', estoque=[], categoria_atual=filtro_categoria, estoque_baixo=0, agendamentos_hoje=0, faturamento_mes=0.0)
+        flash(f'Erro ao carregar os dados.', 'danger')
+        return render_template('index.html', estoque=[], page=1, total_pages=1, faturamento_mes=0.0)
 
 @app.route('/adicionar_material', methods=['POST'])
 def adicionar_material():
-    item = request.form['item']
-    categoria = request.form['categoria']
-    quantidade = request.form['quantidade']
+    item, categoria, quantidade = request.form['item'], request.form['categoria'], request.form['quantidade']
     if int(quantidade) < 0:
-        flash('Erro: A quantidade não pode ser negativa!', 'danger')
+        flash('A quantidade não pode ser negativa!', 'danger')
         return redirect(url_for('index'))
     db = get_db()
-    try:
-        db.execute('INSERT INTO estoque (nome_item, categoria, quantidade) VALUES (?, ?, ?)', (item, categoria, quantidade))
-        db.commit()
-        flash(f'Material "{item}" adicionado com sucesso!', 'success')
-    except sqlite3.Error as e:
-        flash(f'Erro ao adicionar material: {e}', 'danger')
+    db.execute('INSERT INTO estoque (nome_item, categoria, quantidade) VALUES (?, ?, ?)', (item, categoria, quantidade))
+    db.commit()
+    flash(f'Material adicionado!', 'success')
     return redirect(url_for('index'))
 
 @app.route('/alterar_quantidade/<int:id>/<acao>')
 def alterar_quantidade(id, acao):
     db = get_db()
-    try:
-        if acao == 'mais':
-            db.execute('UPDATE estoque SET quantidade = quantidade + 1 WHERE id = ?', (id,))
-        elif acao == 'menos':
-            db.execute('UPDATE estoque SET quantidade = quantidade - 1 WHERE id = ? AND quantidade > 0', (id,))
-        db.commit()
-    except sqlite3.Error:
-        flash('Erro ao alterar quantidade.', 'danger')
+    if acao == 'mais':
+        db.execute('UPDATE estoque SET quantidade = quantidade + 1 WHERE id = ?', (id,))
+    elif acao == 'menos':
+        db.execute('UPDATE estoque SET quantidade = quantidade - 1 WHERE id = ? AND quantidade > 0', (id,))
+    db.commit()
     return redirect(url_for('index'))
 
 @app.route('/deletar_material/<int:id>')
 def deletar_material(id):
     db = get_db()
-    try:
-        db.execute('DELETE FROM estoque WHERE id = ?', (id,))
-        db.commit()
-        flash('Material excluído com sucesso!', 'success')
-    except sqlite3.Error:
-        flash('Erro ao excluir o material.', 'danger')
+    db.execute('DELETE FROM estoque WHERE id = ?', (id,))
+    db.commit()
     return redirect(url_for('index'))
 
-@app.route('/editar_material/<int:id>', methods=['GET', 'POST'])
+@app.route('/editar_material/<int:id>', methods=['POST'])
 def editar_material(id):
+    item, categoria, quantidade = request.form['item'], request.form['categoria'], request.form['quantidade']
     db = get_db()
-    if request.method == 'POST':
-        item = request.form['item']
-        categoria = request.form['categoria']
-        quantidade = request.form['quantidade']
-        if int(quantidade) < 0:
-            flash('Erro: A quantidade não pode ser negativa!', 'danger')
-            return redirect(url_for('index'))
-        try:
-            db.execute('UPDATE estoque SET nome_item = ?, categoria = ?, quantidade = ? WHERE id = ?', (item, categoria, quantidade, id))
-            db.commit()
-            flash('Material atualizado!', 'success')
-            return redirect(url_for('index'))
-        except sqlite3.Error:
-            flash('Erro ao atualizar material.', 'danger')
-            return redirect(url_for('index'))
-    item = db.execute('SELECT * FROM estoque WHERE id = ?', (id,)).fetchone()
-    return render_template('editar_material.html', item=item)
+    db.execute('UPDATE estoque SET nome_item = ?, categoria = ?, quantidade = ? WHERE id = ?', (item, categoria, quantidade, id))
+    db.commit()
+    return redirect(url_for('index'))
 
 @app.route('/agenda')
 def agenda():
     atualizar_status_passado()
     db = get_db()
+    page = request.args.get('page', 1, type=int)
+    per_page = 8
+    offset = (page - 1) * per_page
+    
     try:
-        agendamentos = db.execute("SELECT * FROM agendamentos ORDER BY status DESC, data_hora ASC").fetchall()
+        todos = db.execute("SELECT id, nome_cliente, data_hora, data_hora_fim, status, descricao_tatuagem FROM agendamentos").fetchall()
+        eventos_calendar = [{'id': str(a['id']), 'title': f"{a['nome_cliente']} - {a['descricao_tatuagem']}", 'start': a['data_hora'], 'end': a['data_hora_fim'] or a['data_hora'], 'color': '#198754' if a['status'] == 'Concluído' else '#212529'} for a in todos]
         
-        eventos_calendar = []
-        for ag in agendamentos:
-            cor = '#198754' if ag['status'] == 'Concluído' else '#212529' 
-            eventos_calendar.append({
-                'id': str(ag['id']),
-                'title': f"{ag['nome_cliente']} - {ag['descricao_tatuagem']}",
-                'start': ag['data_hora'],
-                'end': ag['data_hora_fim'] if ag['data_hora_fim'] else ag['data_hora'],
-                'color': cor,
-                'status': ag['status']
-            })
-            
-        eventos_json = json.dumps(eventos_calendar)
-        return render_template('agenda.html', agendamentos=agendamentos, eventos_json=eventos_json)
-    except sqlite3.Error as e:
-        flash(f'Erro ao carregar agenda: {e}', 'danger')
-        return render_template('agenda.html', agendamentos=[], eventos_json="[]")
+        total = db.execute('SELECT COUNT(*) FROM agendamentos').fetchone()[0]
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        agendamentos = db.execute("SELECT * FROM agendamentos ORDER BY status DESC, data_hora ASC LIMIT ? OFFSET ?", (per_page, offset)).fetchall()
+        
+        estoque_disponivel = db.execute("SELECT id, nome_item, quantidade FROM estoque WHERE quantidade > 0 ORDER BY nome_item").fetchall()
+
+        return render_template('agenda.html', agendamentos=agendamentos, eventos_json=json.dumps(eventos_calendar), 
+                               estoque_disponivel=estoque_disponivel, page=page, total_pages=total_pages)
+    except sqlite3.Error:
+        return render_template('agenda.html', agendamentos=[], eventos_json="[]", estoque_disponivel=[], page=1, total_pages=1)
 
 @app.route('/novo_agendamento', methods=['POST'])
 def novo_agendamento():
-    cliente = request.form['cliente']
-    telefone = request.form['telefone']
-    data_hora = request.form['data_hora']
-    duracao_horas = float(request.form.get('duracao', 1)) 
-    descricao = request.form['descricao']
-    valor = request.form['valor'] or 0.0
-    
-    if float(valor) < 0:
-        flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
-        return redirect(url_for('agenda'))
-    
-    data_obj = datetime.strptime(data_hora, '%Y-%m-%dT%H:%M')
-    data_fim_obj = data_obj + timedelta(hours=duracao_horas)
-    data_hora_fim = data_fim_obj.strftime('%Y-%m-%dT%H:%M')
-    
+    cliente, telefone, data_hora, duracao, descricao, valor = request.form['cliente'], request.form['telefone'], request.form['data_hora'], float(request.form.get('duracao', 1)), request.form['descricao'], request.form['valor'] or 0.0
+    data_hora_fim = (datetime.strptime(data_hora, '%Y-%m-%dT%H:%M') + timedelta(hours=duracao)).strftime('%Y-%m-%dT%H:%M')
     db = get_db()
+    db.execute('INSERT INTO agendamentos (nome_cliente, telefone, data_hora, data_hora_fim, descricao_tatuagem, valor) VALUES (?, ?, ?, ?, ?, ?)', (cliente, telefone, data_hora, data_hora_fim, descricao, float(valor)))
+    db.commit()
+    return redirect(url_for('agenda'))
+
+@app.route('/concluir_agendamento/<int:id>', methods=['POST'])
+def concluir_agendamento(id):
+    """Nova Rota: Conclui a sessão e dá baixa no estoque automaticamente"""
+    db = get_db()
+    material_ids = request.form.getlist('material_id[]')
+    material_qtds = request.form.getlist('material_qtd[]')
+
     try:
-        db.execute('''INSERT INTO agendamentos 
-                      (nome_cliente, telefone, data_hora, data_hora_fim, descricao_tatuagem, valor) 
-                      VALUES (?, ?, ?, ?, ?, ?)''', 
-                     (cliente, telefone, data_hora, data_hora_fim, descricao, float(valor)))
-        db.commit()
-        flash('Sessão agendada com sucesso!', 'success')
-    except sqlite3.Error as e:
-        flash(f'Erro ao agendar sessão: {e}', 'danger')
+        for m_id, qtd in zip(material_ids, material_qtds):
+            if m_id and qtd and int(qtd) > 0:
+                qtd_int = int(qtd)
+                db.execute("UPDATE estoque SET quantidade = quantidade - ? WHERE id = ?", (qtd_int, m_id))
+                db.execute("INSERT INTO agendamento_materiais (agendamento_id, material_id, quantidade) VALUES (?, ?, ?)", (id, m_id, qtd_int))
         
+        db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE id = ?", (id,))
+        db.commit()
+        flash('Sessão concluída e estoque debitado!', 'success')
+    except sqlite3.Error as e:
+        db.rollback()
+        flash('Erro ao baixar estoque.', 'danger')
     return redirect(url_for('agenda'))
 
 @app.route('/mudar_status_agenda/<int:id>/<status>')
 def mudar_status_agenda(id, status):
     db = get_db()
-    try:
-        db.execute('UPDATE agendamentos SET status = ? WHERE id = ?', (status, id))
-        db.commit()
-    except sqlite3.Error:
-        flash('Erro ao alterar status.', 'danger')
+    if status == 'Pendente':
+        usados = db.execute("SELECT material_id, quantidade FROM agendamento_materiais WHERE agendamento_id = ?", (id,)).fetchall()
+        for m in usados:
+            db.execute("UPDATE estoque SET quantidade = quantidade + ? WHERE id = ?", (m['quantidade'], m['material_id']))
+        db.execute("DELETE FROM agendamento_materiais WHERE agendamento_id = ?", (id,))
+    
+    db.execute('UPDATE agendamentos SET status = ? WHERE id = ?', (status, id))
+    db.commit()
     return redirect(url_for('agenda'))
 
 @app.route('/deletar_agendamento/<int:id>')
 def deletar_agendamento(id):
     db = get_db()
-    try:
-        db.execute('DELETE FROM agendamentos WHERE id = ?', (id,))
-        db.commit()
-        flash('Agendamento excluído.', 'success')
-    except sqlite3.Error:
-        flash('Erro ao excluir agendamento.', 'danger')
+    db.execute('DELETE FROM agendamento_materiais WHERE agendamento_id = ?', (id,))
+    db.execute('DELETE FROM agendamentos WHERE id = ?', (id,))
+    db.commit()
     return redirect(url_for('agenda'))
 
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
 def editar_agendamento(id):
     db = get_db()
-    
-    cliente = request.form['cliente']
-    telefone = request.form['telefone']
-    data_hora = request.form['data_hora']
-    data_hora_fim = request.form['data_hora_fim']  
-    status = request.form['status']
-    descricao = request.form['descricao']
-    valor = request.form['valor'] or 0.0
-    
-    if float(valor) < 0:
-        flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
-        return redirect(url_for('agenda'))
-    
-    try:
-        db.execute('''
-            UPDATE agendamentos 
-            SET nome_cliente = ?, telefone = ?, data_hora = ?, data_hora_fim = ?, status = ?, descricao_tatuagem = ?, valor = ?
-            WHERE id = ?
-        ''', (cliente, telefone, data_hora, data_hora_fim, status, descricao, float(valor), id))
-        db.commit()
-        flash('Agendamento atualizado com sucesso!', 'success')
-    except sqlite3.Error as e:
-        flash(f'Erro ao atualizar agendamento: {e}', 'danger')
-        
+    db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, status=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
+               (request.form['cliente'], request.form['telefone'], request.form['data_hora'], request.form['data_hora_fim'], request.form['status'], request.form['descricao'], float(request.form['valor'] or 0.0), id))
+    db.commit()
     return redirect(url_for('agenda'))
 
 @app.route('/backup')
 def fazer_backup():
-    try:
-        data_hoje = datetime.now().strftime('%Y-%m-%d')
-        nome_arquivo = f"backup_estudio_{data_hoje}.db"
-        return send_file(DATABASE, as_attachment=True, download_name=nome_arquivo)
-    except Exception as e:
-        flash(f'Erro ao gerar o backup: {e}', 'danger')
-        return redirect(url_for('index'))
+    return send_file(DATABASE, as_attachment=True, download_name=f"backup_estudio_{datetime.now().strftime('%Y-%m-%d')}.db")
     
 @app.route('/restaurar_backup', methods=['POST'])
 def restaurar_backup():
-    if 'arquivo_backup' not in request.files:
-        flash('Nenhum ficheiro enviado.', 'danger')
-        return redirect(url_for('index'))
-    arquivo = request.files['arquivo_backup']
-    if arquivo.filename == '':
-        flash('Nenhum ficheiro selecionado.', 'danger')
-        return redirect(url_for('index'))
+    arquivo = request.files.get('arquivo_backup')
     if arquivo and arquivo.filename.endswith('.db'):
-        try:
-            arquivo.save(DATABASE)
-            flash('Backup restaurado com sucesso! Os dados foram atualizados.', 'success')
-        except Exception as e:
-            flash(f'Erro ao restaurar o backup: {e}', 'danger')
-    else:
-        flash('Formato inválido. Por favor, envie apenas o ficheiro .db do seu backup.', 'danger')
+        arquivo.save(DATABASE)
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
