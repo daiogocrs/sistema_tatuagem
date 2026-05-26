@@ -111,7 +111,7 @@ def adicionar_material():
     flash(f'Material adicionado!', 'success')
     return redirect(url_for('index'))
 
-@app.route('/alterar_quantidade/<int:id>/<acao>')
+@app.route('/alterar_quantidade/<int:id>/<acao>', methods=['POST'])
 def alterar_quantidade(id, acao):
     db = get_db()
     if acao == 'mais':
