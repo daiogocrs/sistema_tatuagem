@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, g, send_file
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
 import re
 
 app = Flask(__name__)
@@ -12,6 +13,8 @@ DATABASE = 'estudio.db'
 @app.template_filter('formatar_data')
 def formatar_data(data_string):
     """Transforma 'YYYY-MM-DDTHH:MM' em 'DD/MM/YYYY às HH:MM'"""
+    if not data_string:
+        return ""
     try:
         data_obj = datetime.strptime(data_string, '%Y-%m-%dT%H:%M')
         return data_obj.strftime('%d/%m/%Y às %H:%M')
@@ -47,22 +50,25 @@ def init_db():
             categoria TEXT NOT NULL,
             quantidade INTEGER NOT NULL
         )''')
+        
         db.execute('''CREATE TABLE IF NOT EXISTS agendamentos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome_cliente TEXT NOT NULL,
             telefone TEXT,
             data_hora TEXT NOT NULL,
+            data_hora_fim TEXT,
             descricao_tatuagem TEXT,
             status TEXT DEFAULT 'Pendente',
             valor REAL DEFAULT 0.0
         )''')
+            
         db.commit()
 
 def atualizar_status_passado():
     db = get_db()
     agora = datetime.now().strftime('%Y-%m-%dT%H:%M')
     try:
-        db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE data_hora < ? AND status = 'Pendente'", (agora,))
+        db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE COALESCE(data_hora_fim, data_hora) < ? AND status = 'Pendente'", (agora,))
         db.commit()
     except sqlite3.Error as e:
         print(f"Erro ao atualizar status automático: {e}")
@@ -99,11 +105,9 @@ def adicionar_material():
     item = request.form['item']
     categoria = request.form['categoria']
     quantidade = request.form['quantidade']
-    
     if int(quantidade) < 0:
         flash('Erro: A quantidade não pode ser negativa!', 'danger')
         return redirect(url_for('index'))
-    
     db = get_db()
     try:
         db.execute('INSERT INTO estoque (nome_item, categoria, quantidade) VALUES (?, ?, ?)', (item, categoria, quantidade))
@@ -111,7 +115,6 @@ def adicionar_material():
         flash(f'Material "{item}" adicionado com sucesso!', 'success')
     except sqlite3.Error as e:
         flash(f'Erro ao adicionar material: {e}', 'danger')
-        
     return redirect(url_for('index'))
 
 @app.route('/alterar_quantidade/<int:id>/<acao>')
@@ -123,7 +126,7 @@ def alterar_quantidade(id, acao):
         elif acao == 'menos':
             db.execute('UPDATE estoque SET quantidade = quantidade - 1 WHERE id = ? AND quantidade > 0', (id,))
         db.commit()
-    except sqlite3.Error as e:
+    except sqlite3.Error:
         flash('Erro ao alterar quantidade.', 'danger')
     return redirect(url_for('index'))
 
@@ -141,16 +144,13 @@ def deletar_material(id):
 @app.route('/editar_material/<int:id>', methods=['GET', 'POST'])
 def editar_material(id):
     db = get_db()
-    
     if request.method == 'POST':
         item = request.form['item']
         categoria = request.form['categoria']
         quantidade = request.form['quantidade']
-        
         if int(quantidade) < 0:
             flash('Erro: A quantidade não pode ser negativa!', 'danger')
             return redirect(url_for('index'))
-            
         try:
             db.execute('UPDATE estoque SET nome_item = ?, categoria = ?, quantidade = ? WHERE id = ?', (item, categoria, quantidade, id))
             db.commit()
@@ -159,7 +159,6 @@ def editar_material(id):
         except sqlite3.Error:
             flash('Erro ao atualizar material.', 'danger')
             return redirect(url_for('index'))
-            
     item = db.execute('SELECT * FROM estoque WHERE id = ?', (id,)).fetchone()
     return render_template('editar_material.html', item=item)
 
@@ -169,16 +168,31 @@ def agenda():
     db = get_db()
     try:
         agendamentos = db.execute("SELECT * FROM agendamentos ORDER BY status DESC, data_hora ASC").fetchall()
-        return render_template('agenda.html', agendamentos=agendamentos)
+        
+        eventos_calendar = []
+        for ag in agendamentos:
+            cor = '#198754' if ag['status'] == 'Concluído' else '#212529' 
+            eventos_calendar.append({
+                'id': str(ag['id']),
+                'title': f"{ag['nome_cliente']} - {ag['descricao_tatuagem']}",
+                'start': ag['data_hora'],
+                'end': ag['data_hora_fim'] if ag['data_hora_fim'] else ag['data_hora'],
+                'color': cor,
+                'status': ag['status']
+            })
+            
+        eventos_json = json.dumps(eventos_calendar)
+        return render_template('agenda.html', agendamentos=agendamentos, eventos_json=eventos_json)
     except sqlite3.Error as e:
-        flash('Erro ao carregar agenda.', 'danger')
-        return render_template('agenda.html', agendamentos=[])
+        flash(f'Erro ao carregar agenda: {e}', 'danger')
+        return render_template('agenda.html', agendamentos=[], eventos_json="[]")
 
 @app.route('/novo_agendamento', methods=['POST'])
 def novo_agendamento():
     cliente = request.form['cliente']
     telefone = request.form['telefone']
     data_hora = request.form['data_hora']
+    duracao_horas = float(request.form.get('duracao', 1)) 
     descricao = request.form['descricao']
     valor = request.form['valor'] or 0.0
     
@@ -186,14 +200,20 @@ def novo_agendamento():
         flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
         return redirect(url_for('agenda'))
     
+    data_obj = datetime.strptime(data_hora, '%Y-%m-%dT%H:%M')
+    data_fim_obj = data_obj + timedelta(hours=duracao_horas)
+    data_hora_fim = data_fim_obj.strftime('%Y-%m-%dT%H:%M')
+    
     db = get_db()
     try:
-        db.execute('INSERT INTO agendamentos (nome_cliente, telefone, data_hora, descricao_tatuagem, valor) VALUES (?, ?, ?, ?, ?)', 
-                     (cliente, telefone, data_hora, descricao, float(valor)))
+        db.execute('''INSERT INTO agendamentos 
+                      (nome_cliente, telefone, data_hora, data_hora_fim, descricao_tatuagem, valor) 
+                      VALUES (?, ?, ?, ?, ?, ?)''', 
+                     (cliente, telefone, data_hora, data_hora_fim, descricao, float(valor)))
         db.commit()
         flash('Sessão agendada com sucesso!', 'success')
-    except sqlite3.Error:
-        flash('Erro ao agendar sessão.', 'danger')
+    except sqlite3.Error as e:
+        flash(f'Erro ao agendar sessão: {e}', 'danger')
         
     return redirect(url_for('agenda'))
 
@@ -218,44 +238,40 @@ def deletar_agendamento(id):
         flash('Erro ao excluir agendamento.', 'danger')
     return redirect(url_for('agenda'))
 
-@app.route('/editar_agendamento/<int:id>', methods=['GET', 'POST'])
+@app.route('/editar_agendamento/<int:id>', methods=['POST'])
 def editar_agendamento(id):
     db = get_db()
     
-    if request.method == 'POST':
-        cliente = request.form['cliente']
-        telefone = request.form['telefone']
-        data_hora = request.form['data_hora']
-        status = request.form['status']
-        descricao = request.form['descricao']
-        valor = request.form['valor'] or 0.0
+    cliente = request.form['cliente']
+    telefone = request.form['telefone']
+    data_hora = request.form['data_hora']
+    data_hora_fim = request.form['data_hora_fim']  
+    status = request.form['status']
+    descricao = request.form['descricao']
+    valor = request.form['valor'] or 0.0
+    
+    if float(valor) < 0:
+        flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
+        return redirect(url_for('agenda'))
+    
+    try:
+        db.execute('''
+            UPDATE agendamentos 
+            SET nome_cliente = ?, telefone = ?, data_hora = ?, data_hora_fim = ?, status = ?, descricao_tatuagem = ?, valor = ?
+            WHERE id = ?
+        ''', (cliente, telefone, data_hora, data_hora_fim, status, descricao, float(valor), id))
+        db.commit()
+        flash('Agendamento atualizado com sucesso!', 'success')
+    except sqlite3.Error as e:
+        flash(f'Erro ao atualizar agendamento: {e}', 'danger')
         
-        if float(valor) < 0:
-            flash('Erro: O valor cobrado não pode ser negativo!', 'danger')
-            return redirect(url_for('agenda'))
-        
-        try:
-            db.execute('''
-                UPDATE agendamentos 
-                SET nome_cliente = ?, telefone = ?, data_hora = ?, status = ?, descricao_tatuagem = ?, valor = ?
-                WHERE id = ?
-            ''', (cliente, telefone, data_hora, status, descricao, float(valor), id))
-            db.commit()
-            flash('Agendamento atualizado com sucesso!', 'success')
-            return redirect(url_for('agenda'))
-        except sqlite3.Error:
-            flash('Erro ao atualizar agendamento.', 'danger')
-            return redirect(url_for('agenda'))
-            
-    agendamento = db.execute('SELECT * FROM agendamentos WHERE id = ?', (id,)).fetchone()
-    return render_template('editar_agendamento.html', agendamento=agendamento)
+    return redirect(url_for('agenda'))
 
 @app.route('/backup')
 def fazer_backup():
     try:
         data_hoje = datetime.now().strftime('%Y-%m-%d')
         nome_arquivo = f"backup_estudio_{data_hoje}.db"
-        
         return send_file(DATABASE, as_attachment=True, download_name=nome_arquivo)
     except Exception as e:
         flash(f'Erro ao gerar o backup: {e}', 'danger')
@@ -266,13 +282,10 @@ def restaurar_backup():
     if 'arquivo_backup' not in request.files:
         flash('Nenhum ficheiro enviado.', 'danger')
         return redirect(url_for('index'))
-        
     arquivo = request.files['arquivo_backup']
-    
     if arquivo.filename == '':
         flash('Nenhum ficheiro selecionado.', 'danger')
         return redirect(url_for('index'))
-        
     if arquivo and arquivo.filename.endswith('.db'):
         try:
             arquivo.save(DATABASE)
@@ -281,7 +294,6 @@ def restaurar_backup():
             flash(f'Erro ao restaurar o backup: {e}', 'danger')
     else:
         flash('Formato inválido. Por favor, envie apenas o ficheiro .db do seu backup.', 'danger')
-        
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

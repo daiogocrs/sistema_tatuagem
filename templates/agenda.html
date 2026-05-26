@@ -11,46 +11,65 @@
             <div class="col-md-3">
                 <input type="text" name="cliente" class="form-control" placeholder="Nome do Cliente" required>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <input type="text" name="telefone" class="form-control mascara-whatsapp" placeholder="WhatsApp">
             </div>
-            <div class="col-md-4">
-                <input type="datetime-local" name="data_hora" class="form-control" required>
+            <div class="col-md-3">
+                <input type="datetime-local" name="data_hora" class="form-control" required
+                    title="Data e Hora de Início">
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.5" name="duracao" class="form-control" placeholder="Duração (horas)"
+                    required min="0.5" title="Quantas horas de sessão? (ex: 2 ou 3.5)">
             </div>
             <div class="col-md-2">
                 <input type="number" step="0.01" name="valor" class="form-control" placeholder="Valor (R$)">
             </div>
-            <div class="col-md-12">
-                <input type="text" name="descricao" class="form-control" placeholder="O que vai tatuar? (Ex: Fechamento braço, Maori, Traço Fino)">
+            <div class="col-md-10">
+                <input type="text" name="descricao" class="form-control"
+                    placeholder="O que vai tatuar? (Ex: Fechamento braço, Maori, Traço Fino)">
             </div>
-            <div class="col-md-12 text-end">
-                <button type="submit" class="btn btn-dark"><i class="bi bi-calendar-plus"></i> Marcar Sessão</button>
+            <div class="col-md-2 text-end">
+                <button type="submit" class="btn btn-dark w-100"><i class="bi bi-calendar-plus"></i> Marcar</button>
             </div>
         </form>
     </div>
 </div>
 
+<div class="card mb-5 shadow-sm border-dark">
+    <div class="card-body">
+        <div id="calendario"></div>
+    </div>
+</div>
+
+<h4 class="mb-3">Lista de Agendamentos</h4>
 <div class="row">
     {% for agendamento in agendamentos %}
     <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
+        <div
+            class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
-                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente'] }}</h5>
+                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente']
+                        }}</h5>
                     <span class="badge bg-dark">{{ agendamento['status'] }}</span>
                 </div>
-                
-                {% set partes = agendamento['data_hora'].split('T') %}
-                {% set data_partes = partes[0].split('-') %}
-                <h6 class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
-                    <i class="bi bi-clock me-1"></i> Data: {{ agendamento['data_hora'] | formatar_data }}
+
+                <h6
+                    class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
+                    <i class="bi bi-clock me-1"></i> Início: {{ agendamento['data_hora'] | formatar_data }}
+                    {% if agendamento['data_hora_fim'] %}
+                    <br><i class="bi bi-box-arrow-right me-1"></i> Fim: {{ agendamento['data_hora_fim'] | formatar_data
+                    }}
+                    {% endif %}
                 </h6>
 
                 <p class="card-text mb-1">
                     <small>
-                        <i class="bi bi-whatsapp me-1"></i> 
+                        <i class="bi bi-whatsapp me-1"></i>
                         {% if agendamento['telefone'] %}
-                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}" target="_blank" class="text-decoration-none fw-bold {% if agendamento['status'] == 'Concluído' %}text-white{% else %}text-success{% endif %}">
+                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}" target="_blank"
+                            class="text-decoration-none fw-bold {% if agendamento['status'] == 'Concluído' %}text-white{% else %}text-success{% endif %}">
                             {{ agendamento['telefone'] }}
                         </a>
                         {% else %}
@@ -58,18 +77,28 @@
                         {% endif %}
                     </small>
                 </p>
-                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
-                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{ "%.2f"|format(agendamento['valor'] or 0) }}</p>
+                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{
+                    agendamento['descricao_tatuagem'] }}</p>
+                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{
+                    "%.2f"|format(agendamento['valor'] or 0) }}</p>
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
-                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Concluído') }}" class="btn btn-sm btn-success" title="Marcar Concluído"><i class="bi bi-check-circle"></i> Concluir</a>
+                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Concluído') }}"
+                        class="btn btn-sm btn-success" title="Marcar Concluído"><i class="bi bi-check-circle"></i>
+                        Concluir</a>
                     {% else %}
-                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Pendente') }}" class="btn btn-sm btn-warning" title="Desfazer"><i class="bi bi-arrow-counterclockwise"></i> Desfazer</a>
+                    <a href="{{ url_for('mudar_status_agenda', id=agendamento['id'], status='Pendente') }}"
+                        class="btn btn-sm btn-warning" title="Desfazer"><i class="bi bi-arrow-counterclockwise"></i>
+                        Desfazer</a>
                     {% endif %}
-                    
-                    <button type="button" class="btn btn-sm btn-light border ms-1" data-bs-toggle="modal" data-bs-target="#modalEditarAgenda{{ agendamento['id'] }}" title="Editar"><i class="bi bi-pencil"></i></button>
-                    <a href="{{ url_for('deletar_agendamento', id=agendamento['id']) }}" class="btn btn-sm btn-danger float-end" onclick="return confirm('Excluir este agendamento?');" title="Excluir"><i class="bi bi-trash"></i></a>
+
+                    <button type="button" class="btn btn-sm btn-light border ms-1" data-bs-toggle="modal"
+                        data-bs-target="#modalEditarAgenda{{ agendamento['id'] }}" title="Editar"><i
+                            class="bi bi-pencil"></i></button>
+                    <a href="{{ url_for('deletar_agendamento', id=agendamento['id']) }}"
+                        class="btn btn-sm btn-danger float-end" onclick="return confirm('Excluir este agendamento?');"
+                        title="Excluir"><i class="bi bi-trash"></i></a>
                 </div>
             </div>
         </div>
@@ -80,36 +109,49 @@
             <div class="modal-content">
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title">Editar Sessão</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST">
                     <div class="modal-body row g-3 text-start text-dark">
                         <div class="col-md-6">
                             <label class="form-label">Nome do Cliente</label>
-                            <input type="text" name="cliente" class="form-control" value="{{ agendamento['nome_cliente'] }}" required>
+                            <input type="text" name="cliente" class="form-control"
+                                value="{{ agendamento['nome_cliente'] }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">WhatsApp</label>
-                            <input type="text" name="telefone" class="form-control mascara-whatsapp" value="{{ agendamento['telefone'] }}">
+                            <input type="text" name="telefone" class="form-control mascara-whatsapp"
+                                value="{{ agendamento['telefone'] }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Data e Hora</label>
-                            <input type="datetime-local" name="data_hora" class="form-control" value="{{ agendamento['data_hora'] }}" required>
+                            <label class="form-label">Início da Sessão</label>
+                            <input type="datetime-local" name="data_hora" class="form-control"
+                                value="{{ agendamento['data_hora'] }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Previsão de Fim</label>
+                            <input type="datetime-local" name="data_hora_fim" class="form-control"
+                                value="{{ agendamento['data_hora_fim'] or agendamento['data_hora'] }}" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select" required>
-                                <option value="Pendente" {% if agendamento['status'] == 'Pendente' %}selected{% endif %}>Pendente</option>
-                                <option value="Concluído" {% if agendamento['status'] == 'Concluído' %}selected{% endif %}>Concluído</option>
+                                <option value="Pendente" {% if agendamento['status']=='Pendente' %}selected{% endif %}>
+                                    Pendente</option>
+                                <option value="Concluído" {% if agendamento['status']=='Concluído' %}selected{% endif
+                                    %}>Concluído</option>
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Valor Cobrado (R$)</label>
-                            <input type="number" step="0.01" name="valor" class="form-control" value="{{ agendamento['valor'] }}">
+                            <input type="number" step="0.01" name="valor" class="form-control"
+                                value="{{ agendamento['valor'] }}">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descrição da Tatuagem</label>
-                            <input type="text" name="descricao" class="form-control" value="{{ agendamento['descricao_tatuagem'] }}">
+                            <input type="text" name="descricao" class="form-control"
+                                value="{{ agendamento['descricao_tatuagem'] }}">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -131,7 +173,42 @@
 {% endblock %}
 
 {% block scripts %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/pt-br.global.min.js'></script>
+
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('calendario');
+
+        var eventos = {{ eventos_json | safe
+    }};
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'pt-br',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        slotMinTime: '06:00:00',
+        slotMaxTime: '24:00:00',
+        allDaySlot: false,
+        events: eventos,
+        eventClick: function (info) {
+            info.jsEvent.preventDefault();
+            var modalId = '#modalEditarAgenda' + info.event.id;
+            var modalElement = document.querySelector(modalId);
+            if (modalElement) {
+                var modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
+        }
+    });
+
+    calendar.render();
+    });
+
     const inputData = document.querySelector('input[name="data_hora"]');
     if (inputData) {
         const agora = new Date();
@@ -140,7 +217,7 @@
         inputData.min = dataFormatada;
     }
 
-    document.querySelectorAll('.mascara-whatsapp').forEach(function(elemento) {
+    document.querySelectorAll('.mascara-whatsapp').forEach(function (elemento) {
         IMask(elemento, {
             mask: '(00) 00000-0000'
         });
