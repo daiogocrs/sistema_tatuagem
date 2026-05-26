@@ -68,15 +68,6 @@ def init_db():
         
         db.commit()
 
-def atualizar_status_passado():
-    db = get_db()
-    agora = datetime.now().strftime('%Y-%m-%dT%H:%M')
-    try:
-        db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE COALESCE(data_hora_fim, data_hora) < ? AND status = 'Pendente'", (agora,))
-        db.commit()
-    except sqlite3.Error as e:
-        pass
-
 @app.route('/')
 def index():
     filtro_categoria = request.args.get('categoria')
@@ -148,7 +139,6 @@ def editar_material(id):
 
 @app.route('/agenda')
 def agenda():
-    atualizar_status_passado()
     db = get_db()
     page = request.args.get('page', 1, type=int)
     per_page = 8
@@ -172,7 +162,7 @@ def agenda():
 @app.route('/novo_agendamento', methods=['POST'])
 def novo_agendamento():
     cliente, telefone, data_hora, duracao, descricao, valor = request.form['cliente'], request.form['telefone'], request.form['data_hora'], float(request.form.get('duracao', 1)), request.form['descricao'], request.form['valor'] or 0.0
-    data_hora_fim = (datetime.strptime(data_hora, '%Y-%m-%dT%H:%M') + timedelta(hours=duracao)).strftime('%Y-%m-%dT%H:%M')
+    data_hora_fim = (datetime.strptime(data_hora[:16], '%Y-%m-%dT%H:%M') + timedelta(hours=duracao)).strftime('%Y-%m-%dT%H:%M')
     db = get_db()
     db.execute('INSERT INTO agendamentos (nome_cliente, telefone, data_hora, data_hora_fim, descricao_tatuagem, valor) VALUES (?, ?, ?, ?, ?, ?)', (cliente, telefone, data_hora, data_hora_fim, descricao, float(valor)))
     db.commit()
