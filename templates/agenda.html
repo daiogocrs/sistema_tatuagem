@@ -48,21 +48,17 @@
 <div class="row">
     {% for agendamento in agendamentos %}
     <div class="col-md-6 mb-3">
-        <div
-            class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
+        <div class="card shadow-sm h-100 {% if agendamento['status'] == 'Concluído' %}bg-success text-white bg-opacity-75{% endif %}">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
-                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente']
-                        }}</h5>
+                    <h5 class="card-title fw-bold"><i class="bi bi-person-fill me-1"></i> {{ agendamento['nome_cliente'] }}</h5>
                     <span class="badge bg-dark">{{ agendamento['status'] }}</span>
                 </div>
 
-                <h6
-                    class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
+                <h6 class="card-subtitle mb-2 mt-2 text-muted {% if agendamento['status'] == 'Concluído' %}text-white{% endif %}">
                     <i class="bi bi-clock me-1"></i> Início: {{ agendamento['data_hora'] | formatar_data }}
                     {% if agendamento['data_hora_fim'] %}
-                    <br><i class="bi bi-box-arrow-right me-1"></i> Fim: {{ agendamento['data_hora_fim'] | formatar_data
-                    }}
+                    <br><i class="bi bi-box-arrow-right me-1"></i> Fim: {{ agendamento['data_hora_fim'] | formatar_data }}
                     {% endif %}
                 </h6>
 
@@ -79,10 +75,8 @@
                         {% endif %}
                     </small>
                 </p>
-                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{
-                    agendamento['descricao_tatuagem'] }}</p>
-                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{
-                    "%.2f"|format(agendamento['valor'] or 0) }}</p>
+                <p class="card-text"><strong><i class="bi bi-pen me-1"></i> Tattoo:</strong> {{ agendamento['descricao_tatuagem'] }}</p>
+                <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{ "%.2f"|format(agendamento['valor'] or 0) }}</p>
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
@@ -119,8 +113,7 @@
                             <form action="{{ url_for('concluir_agendamento', id=agendamento['id']) }}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <div class="modal-body text-dark">
-                                    <p>O que você usou na tatuagem de <strong>{{ agendamento['nome_cliente']
-                                            }}</strong>? <em>(Opcional)</em></p>
+                                    <p>O que você usou na tatuagem de <strong>{{ agendamento['nome_cliente'] }}</strong>? <em>(Opcional)</em></p>
                                     <div id="materiaisContainer{{ agendamento['id'] }}">
                                     </div>
                                     <button type="button" class="btn btn-sm btn-outline-primary mt-2"
@@ -171,16 +164,6 @@
                                         <input type="datetime-local" name="data_hora_fim" class="form-control"
                                             value="{{ agendamento['data_hora_fim'] or agendamento['data_hora'] }}"
                                             required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Status</label>
-                                        <select name="status" class="form-select" required>
-                                            <option value="Pendente" {% if agendamento['status']=='Pendente'
-                                                %}selected{% endif %}>
-                                                Pendente</option>
-                                            <option value="Concluído" {% if agendamento['status']=='Concluído'
-                                                %}selected{% endif %}>Concluído</option>
-                                        </select>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Valor Cobrado (R$)</label>
@@ -260,33 +243,32 @@
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendario');
 
-        var eventos = {{ eventos_json | safe
-    }};
+        var eventos = {{ eventos_calendar | tojson }};
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'pt-br',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        slotMinTime: '06:00:00',
-        slotMaxTime: '24:00:00',
-        allDaySlot: false,
-        events: eventos,
-        eventClick: function (info) {
-            info.jsEvent.preventDefault();
-            var modalId = '#modalEditarAgenda' + info.event.id;
-            var modalElement = document.querySelector(modalId);
-            if (modalElement) {
-                var modal = new bootstrap.Modal(modalElement);
-                modal.show();
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'pt-br',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            allDaySlot: false,
+            events: eventos,
+            eventClick: function (info) {
+                info.jsEvent.preventDefault();
+                var modalId = '#modalEditarAgenda' + info.event.id;
+                var modalElement = document.querySelector(modalId);
+                if (modalElement) {
+                    var modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
             }
-        }
-    });
+        });
 
-    calendar.render();
+        calendar.render();
     });
 
     const inputData = document.querySelector('input[name="data_hora"]');

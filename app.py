@@ -164,7 +164,7 @@ def agenda():
         
         estoque_disponivel = db.execute("SELECT id, nome_item, quantidade FROM estoque WHERE quantidade > 0 ORDER BY nome_item").fetchall()
 
-        return render_template('agenda.html', agendamentos=agendamentos, eventos_json=json.dumps(eventos_calendar), 
+        return render_template('agenda.html', agendamentos=agendamentos, eventos_calendar=eventos_calendar, 
                                estoque_disponivel=estoque_disponivel, page=page, total_pages=total_pages)
     except sqlite3.Error:
         return render_template('agenda.html', agendamentos=[], eventos_json="[]", estoque_disponivel=[], page=1, total_pages=1)
@@ -225,8 +225,8 @@ def deletar_agendamento(id):
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
 def editar_agendamento(id):
     db = get_db()
-    db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, status=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
-               (request.form['cliente'], request.form['telefone'], request.form['data_hora'], request.form['data_hora_fim'], request.form['status'], request.form['descricao'], float(request.form['valor'] or 0.0), id))
+    db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
+               (request.form['cliente'], request.form['telefone'], request.form['data_hora'], request.form['data_hora_fim'], request.form['descricao'], float(request.form['valor'] or 0.0), id))
     db.commit()
     return redirect(url_for('agenda'))
 
@@ -246,13 +246,18 @@ def restaurar_backup():
             conn.execute('SELECT 1 FROM sqlite_master LIMIT 1')
             conn.close()
             
-            if os.path.exists(DATABASE):
-                os.remove(DATABASE)
-            os.rename(temp_path, DATABASE)
-            flash('Backup restaurado com sucesso!', 'success')
+            try:
+                os.replace(temp_path, DATABASE)
+                flash('Backup restaurado com sucesso!', 'success')
+            except OSError:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                flash('Erro: O Windows bloqueou a substituição do ficheiro. Pare o terminal (Ctrl+C), reinicie o sistema e tente novamente.', 'danger')
+                
         except sqlite3.Error:
-            os.remove(temp_path) 
-            flash('Erro: O ficheiro enviado não é um backup válido.', 'danger')
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            flash('Erro: O ficheiro enviado não é um backup válido ou está corrompido.', 'danger')
             
     return redirect(url_for('index'))
 
