@@ -63,24 +63,23 @@
                 <form action="{{ url_for('restaurar_backup') }}" method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                     <div class="modal-body text-dark">
-                        <div class="modal-body text-dark">
-                            <p>Selecione o ficheiro de backup (<strong>.db</strong>) que guardou anteriormente.</p>
+                        <p>Selecione o ficheiro de backup (<strong>.db</strong>) que guardou anteriormente.</p>
 
-                            <div class="alert alert-warning shadow-sm">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                <strong>Atenção:</strong> Ao restaurar, toda a sua agenda e materiais atuais serão
-                                apagados e substituídos pelos dados do ficheiro que enviar.
-                            </div>
+                        <div class="alert alert-warning shadow-sm">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Atenção:</strong> Ao restaurar, toda a sua agenda e materiais atuais serão
+                            apagados e substituídos pelos dados do ficheiro que enviar.
+                        </div>
 
-                            <div class="mb-3">
-                                <input class="form-control" type="file" name="arquivo_backup" accept=".db" required>
-                            </div>
+                        <div class="mb-3">
+                            <input class="form-control" type="file" name="arquivo_backup" accept=".db" required>
                         </div>
-                        <div class="modal-footer border-0">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-info text-white"><i class="bi bi-upload"></i> Confirmar
-                                Restauro</button>
-                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-info text-white"><i class="bi bi-upload"></i> Confirmar
+                            Restauro</button>
+                    </div>
                 </form>
             </div>
         </div>

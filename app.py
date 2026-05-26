@@ -190,7 +190,7 @@ def concluir_agendamento(id):
         flash('Erro ao baixar estoque.', 'danger')
     return redirect(url_for('agenda'))
 
-@app.route('/mudar_status_agenda/<int:id>/<status>')
+@app.route('/mudar_status_agenda/<int:id>/<status>', methods=['POST'])
 def mudar_status_agenda(id, status):
     db = get_db()
     if status == 'Pendente':
@@ -215,8 +215,12 @@ def deletar_agendamento(id):
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
 def editar_agendamento(id):
     db = get_db()
+    
+    data_hora_limpa = request.form['data_hora'][:16]
+    data_hora_fim_limpa = request.form['data_hora_fim'][:16]
+    
     db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
-               (request.form['cliente'], request.form['telefone'], request.form['data_hora'], request.form['data_hora_fim'], request.form['descricao'], float(request.form['valor'] or 0.0), id))
+               (request.form['cliente'], request.form['telefone'], data_hora_limpa, data_hora_fim_limpa, request.form['descricao'], float(request.form['valor'] or 0.0), id))
     db.commit()
     return redirect(url_for('agenda'))
 
