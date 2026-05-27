@@ -23,15 +23,16 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 2. Dê dois cliques para abrir.
 3. Uma tela preta vai abrir (não a feche enquanto estiver trabalhando) e o sistema abrirá automaticamente no seu navegador!
 
-> **Nota:** Seus dados ficam salvos em um arquivo chamado `estudio.db` que será criado na mesma pasta do programa. Faça backup dele regularmente pela própria ferramenta do sistema!*
+> **Nota:** Seus dados ficam salvos em um arquivo chamado `estudio.db` que será criado na mesma pasta do programa. Faça backup dele regularmente pela própria ferramenta do sistema!
 
 ## Estrutura do Projeto
 
 ```text
 /
 ├── app.py
-├── requirements.txt
+├── icone.ico
 ├── .gitignore
+├── readme.md
 └── templates/
     ├── agenda.html
     ├── base.html
