@@ -170,8 +170,11 @@ def editar_material(id):
     
     try:
         quantidade = int(request.form.get('quantidade', 0))
+        if quantidade < 0:
+            flash('A quantidade não pode ser negativa.', 'danger')
+            return redirect(url_for('index'))
     except ValueError:
-        flash('Quantidade inválida.', 'danger')
+        flash('Por favor, insira um número válido para a quantidade.', 'danger')
         return redirect(url_for('index'))
         
     db = get_db()
@@ -247,7 +250,7 @@ def concluir_agendamento(id):
                 try:
                     qtd_int = int(qtd)
                     if qtd_int > 0:
-                        db.execute("UPDATE estoque SET quantidade = quantidade - ? WHERE id = ?", (qtd_int, m_id))
+                        db.execute("UPDATE estoque SET quantidade = MAX(0, quantidade - ?) WHERE id = ?", (qtd_int, m_id))
                         db.execute("INSERT INTO agendamento_materiais (agendamento_id, material_id, quantidade) VALUES (?, ?, ?)", (id, m_id, qtd_int))
                 except ValueError:
                     pass 
@@ -362,10 +365,14 @@ if __name__ == '__main__':
 
     init_db()
     
+    timer_navegador = Timer(1.5, abrir_navegador)
+    
     try:
-        Timer(1.5, abrir_navegador).start()
+        timer_navegador.start()
         app.run(port=PORTA, debug=False)
     except OSError as e:
+        timer_navegador.cancel()
+        
         if "10048" in str(e) or "already in use" in str(e):
             print("\n====================================================================")
             print(" AVISO: O sistema já está aberto e a funcionar em segundo plano!")
