@@ -21,7 +21,8 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 **Passo a passo após baixar:**
 1. Salve o arquivo **`Tattoo.exe`** em uma pasta segura no seu computador.
 2. Dê dois cliques para abrir.
-3. Uma tela preta vai abrir (não a feche enquanto estiver trabalhando) e o sistema abrirá automaticamente no seu navegador!
+3. O sistema abrirá automaticamente no seu navegador!
+4. Basta clicar em **`Desligar`** no canto superior direito para encerrar o sistema.
 
 > **Nota:** Seus dados ficam salvos em um arquivo chamado `estudio.db` que será criado na mesma pasta do programa. Faça backup dele regularmente pela própria ferramenta do sistema!
 

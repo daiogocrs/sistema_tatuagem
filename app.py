@@ -353,6 +353,11 @@ def restaurar_backup():
             
     return redirect(url_for('index'))
 
+@app.route('/desligar', methods=['POST'])
+def desligar():
+    os._exit(0)
+    return "Desligando..."
+
 if __name__ == '__main__':
     import webbrowser
     from threading import Timer

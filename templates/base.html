@@ -22,7 +22,7 @@
                     href="{{ url_for('agenda') }}"><i class="bi bi-calendar3 me-1"></i> Agenda</a>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 align-items-center">
                 <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
                     data-bs-target="#modalRestaurarBackup" title="Restaurar uma cópia de segurança">
                     <i class="bi bi-cloud-arrow-up-fill me-1"></i> Restaurar
@@ -31,6 +31,13 @@
                     title="Baixar cópia de segurança">
                     <i class="bi bi-cloud-arrow-down-fill me-1"></i> Fazer Backup
                 </a>
+                
+                <form action="{{ url_for('desligar') }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Tem a certeza que deseja desligar o sistema?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-sm btn-danger ms-2" title="Encerrar o sistema">
+                        <i class="bi bi-power"></i> Desligar
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
