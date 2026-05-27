@@ -8,13 +8,15 @@ import json
 import re
 
 if getattr(sys, 'frozen', False):
+    BASE_DIR = os.path.dirname(sys.executable)
     template_folder = os.path.join(sys._MEIPASS, 'templates')
     app = Flask(__name__, template_folder=template_folder)
 else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     app = Flask(__name__)
 app.secret_key = 'chave-secreta-estudio-tatuagem-segura' # Pode inventar qualquer frase aqui 
 csrf = CSRFProtect(app) 
-DATABASE = 'estudio.db'
+DATABASE = os.path.join(BASE_DIR, 'estudio.db')
 
 @app.template_filter('formatar_data')
 def formatar_data(data_string):
@@ -351,12 +353,25 @@ def restaurar_backup():
 if __name__ == '__main__':
     import webbrowser
     from threading import Timer
+    import socket
+
+    PORTA = 5000
 
     def abrir_navegador():
-        webbrowser.open("http://127.0.0.1:5000")
+        webbrowser.open(f"http://127.0.0.1:{PORTA}")
 
     init_db()
     
-    Timer(1.5, abrir_navegador).start()
-    
-    app.run(debug=False)
+    try:
+        Timer(1.5, abrir_navegador).start()
+        app.run(port=PORTA, debug=False)
+    except OSError as e:
+        if "10048" in str(e) or "already in use" in str(e):
+            print("\n====================================================================")
+            print(" AVISO: O sistema já está aberto e a funcionar em segundo plano!")
+            print(" A abrir o navegador na sessão existente...")
+            print("====================================================================\n")
+            abrir_navegador() 
+            input("Pressione ENTER para fechar este aviso...")
+        else:
+            raise e
