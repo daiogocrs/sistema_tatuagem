@@ -27,6 +27,15 @@ def formatar_data(data_string):
     except ValueError:
         return data_string
 
+@app.template_filter('formatar_nascimento')
+def formatar_nascimento(data_string):
+    if not data_string: return ""
+    try:
+        data_obj = datetime.strptime(data_string, '%Y-%m-%d')
+        return data_obj.strftime('%d/%m/%Y')
+    except ValueError:
+        return data_string
+
 @app.template_filter('limpar_telefone')
 def limpar_telefone(telefone_string):
     if not telefone_string: return ""
@@ -72,7 +81,14 @@ def init_db():
             FOREIGN KEY(agendamento_id) REFERENCES agendamentos(id),
             FOREIGN KEY(material_id) REFERENCES estoque(id)
         )''')
-        
+        db.execute('''CREATE TABLE IF NOT EXISTS clientes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            telefone TEXT,
+            data_nascimento TEXT,
+            observacoes TEXT,
+            data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
         db.commit()
 
 @app.route('/')
@@ -204,11 +220,13 @@ def agenda():
         agendamentos = db.execute("SELECT * FROM agendamentos ORDER BY status DESC, data_hora ASC LIMIT ? OFFSET ?", (per_page, offset)).fetchall()
         
         estoque_disponivel = db.execute("SELECT id, nome_item, quantidade FROM estoque WHERE quantidade > 0 ORDER BY nome_item").fetchall()
+        
+        clientes_salvos = db.execute("SELECT nome, telefone FROM clientes ORDER BY nome").fetchall()
 
         return render_template('agenda.html', agendamentos=agendamentos, eventos_calendar=eventos_calendar, 
-                               estoque_disponivel=estoque_disponivel, page=page, total_pages=total_pages)
+                               estoque_disponivel=estoque_disponivel, clientes_salvos=clientes_salvos, page=page, total_pages=total_pages)
     except sqlite3.Error:
-        return render_template('agenda.html', agendamentos=[], eventos_json="[]", estoque_disponivel=[], page=1, total_pages=1)
+        return render_template('agenda.html', agendamentos=[], eventos_calendar=[], estoque_disponivel=[], clientes_salvos=[], page=1, total_pages=1)
 
 @app.route('/novo_agendamento', methods=['POST'])
 def novo_agendamento():
@@ -320,6 +338,44 @@ def editar_agendamento(id):
         flash('Erro ao editar agendamento na base de dados.', 'danger')
         
     return redirect(url_for('agenda'))
+
+@app.route('/clientes')
+def clientes():
+    db = get_db()
+    lista_clientes = db.execute("SELECT * FROM clientes ORDER BY nome").fetchall()
+    return render_template('clientes.html', clientes=lista_clientes)
+
+@app.route('/novo_cliente', methods=['POST'])
+def novo_cliente():
+    nome = request.form['nome']
+    telefone = request.form['telefone']
+    data_nascimento = request.form['data_nascimento']
+    observacoes = request.form['observacoes']
+    
+    db = get_db()
+    try:
+        db.execute('INSERT INTO clientes (nome, telefone, data_nascimento, observacoes) VALUES (?, ?, ?, ?)',
+                   (nome, telefone, data_nascimento, observacoes))
+        db.commit()
+        flash('Cliente registado com sucesso!', 'success')
+    except sqlite3.Error:
+        db.rollback()
+        flash('Erro ao registar o cliente.', 'danger')
+        
+    return redirect(url_for('clientes'))
+
+@app.route('/deletar_cliente/<int:id>', methods=['POST'])
+def deletar_cliente(id):
+    db = get_db()
+    try:
+        db.execute('DELETE FROM clientes WHERE id = ?', (id,))
+        db.commit()
+        flash('Cliente removido com sucesso.', 'success')
+    except sqlite3.Error:
+        db.rollback()
+        flash('Erro ao remover o cliente.', 'danger')
+        
+    return redirect(url_for('clientes'))
 
 @app.route('/backup')
 def fazer_backup():

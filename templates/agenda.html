@@ -11,7 +11,12 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
             <div class="col-md-3">
-                <input type="text" name="cliente" class="form-control" placeholder="Nome do Cliente" required>
+                <input type="text" name="cliente" id="cliente_input" class="form-control" placeholder="Nome do Cliente" list="clientes_list" required autocomplete="off">
+                <datalist id="clientes_list">
+                    {% for cliente in clientes_salvos %}
+                    <option value="{{ cliente['nome'] }}" data-telefone="{{ cliente['telefone'] }}"></option>
+                    {% endfor %}
+                </datalist>
             </div>
             <div class="col-md-2">
                 <input type="text" name="telefone" class="form-control mascara-whatsapp" placeholder="WhatsApp">
@@ -70,7 +75,7 @@
                     <small>
                         <i class="bi bi-whatsapp me-1"></i>
                         {% if agendamento['telefone'] %}
-                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}" target="_blank"
+                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}?text=Olá, {{ agendamento['nome_cliente'] }}! Tudo bem? Passando para confirmar a nossa sessão de tatuagem para o dia {{ agendamento['data_hora'] | formatar_data }}. Qualquer dúvida, estou à disposição!" target="_blank"
                             class="text-decoration-none fw-bold {% if agendamento['status'] == 'Concluído' %}text-white{% else %}text-success{% endif %}">
                             {{ agendamento['telefone'] }}
                         </a>
@@ -254,33 +259,32 @@
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendario');
 
-        var eventos = {{ eventos_calendar | tojson
-    }};
+        var eventos = {{ eventos_calendar | tojson }};
 
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        locale: 'pt-br',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-        },
-        slotMinTime: '06:00:00',
-        slotMaxTime: '24:00:00',
-        allDaySlot: false,
-        events: eventos,
-        eventClick: function (info) {
-            info.jsEvent.preventDefault();
-            var modalId = '#modalEditarAgenda' + info.event.id;
-            var modalElement = document.querySelector(modalId);
-            if (modalElement) {
-                var modal = new bootstrap.Modal(modalElement);
-                modal.show();
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'pt-br',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+            },
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            allDaySlot: false,
+            events: eventos,
+            eventClick: function (info) {
+                info.jsEvent.preventDefault();
+                var modalId = '#modalEditarAgenda' + info.event.id;
+                var modalElement = document.querySelector(modalId);
+                if (modalElement) {
+                    var modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                }
             }
-        }
-    });
+        });
 
-    calendar.render();
+        calendar.render();
     });
 
     const inputData = document.querySelector('input[name="data_hora"]');
@@ -296,5 +300,30 @@
             mask: '(00) 00000-0000'
         });
     });
+
+    // Auto-preenchimento do WhatsApp ao selecionar cliente salvo (Versão Segura)
+    var clienteInput = document.getElementById('cliente_input');
+    if (clienteInput) {
+        clienteInput.addEventListener('input', function () {
+            var val = this.value;
+            var datalist = document.getElementById('clientes_list');
+            if (datalist) {
+                var options = datalist.options;
+                for (var i = 0; i < options.length; i++) {
+                    if (options[i].value === val) {
+                        var telefoneSalvo = options[i].getAttribute('data-telefone');
+                        if (telefoneSalvo) {
+                            var campoTelefone = document.querySelector('.mascara-whatsapp');
+                            if (campoTelefone) {
+                                campoTelefone.value = telefoneSalvo;
+                                campoTelefone.dispatchEvent(new Event('input'));
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}
