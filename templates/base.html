@@ -22,6 +22,8 @@
                     href="{{ url_for('agenda') }}"><i class="bi bi-calendar3 me-1"></i> Agenda</a>
                 <a class="nav-link {% if request.endpoint == 'clientes' %}active{% endif %}"
                     href="{{ url_for('clientes') }}"><i class="bi bi-people me-1"></i> Clientes</a>
+                <a class="nav-link {% if request.endpoint == 'financeiro' %}active{% endif %}"
+                    href="{{ url_for('financeiro') }}"><i class="bi bi-wallet2 me-1"></i> Financeiro</a>
             </div>
 
             <div class="d-flex gap-2 align-items-center">

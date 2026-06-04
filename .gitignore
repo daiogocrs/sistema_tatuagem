@@ -1,6 +1,7 @@
 *.db
 *.sqlite3
 estudio.db
+uploads/
 
 venv/
 env/

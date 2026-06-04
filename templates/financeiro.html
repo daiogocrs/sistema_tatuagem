@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Estúdio - Financeiro{% endblock %}
+{% block content %}
+<h2 class="mb-4 text-center">Gestão Financeira</h2>
+
+<div class="row mb-4 text-center g-3">
+    <div class="col-md-4">
+        <div class="card bg-success text-white shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase mb-2">Entradas do Mês</h6>
+                <h3 class="mb-0">R$ {{ "%.2f"|format(faturamento) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase mb-2">Saídas do Mês</h6>
+                <h3 class="mb-0">R$ {{ "%.2f"|format(despesas_total) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-primary text-white shadow-sm h-100">
+            <div class="card-body">
+                <h6 class="text-white-50 text-uppercase mb-2">Lucro Real (Saldo)</h6>
+                <h3 class="mb-0">R$ {{ "%.2f"|format(lucro) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4 border-danger">
+    <div class="card-body bg-light">
+        <h5 class="card-title text-danger mb-3"><i class="bi bi-cart-dash me-2"></i>Registar Nova Despesa</h5>
+        <form action="{{ url_for('nova_despesa') }}" method="POST" class="row g-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <div class="col-md-5">
+                <input type="text" name="descricao" class="form-control" placeholder="Descrição (Ex: Renda, Agulhas, Luz...)" required>
+            </div>
+            <div class="col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="number" step="0.01" name="valor" class="form-control" placeholder="Valor" required>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="data_despesa" class="form-control" required id="data_hoje_despesa">
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-danger w-100"><i class="bi bi-plus-lg"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <h5 class="mb-3">Histórico de Despesas</h5>
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr><th>Data</th><th>Descrição</th><th>Valor</th><th class="text-end">Ações</th></tr>
+            </thead>
+            <tbody>
+                {% for despesa in despesas %}
+                <tr>
+                    <td>{{ despesa['data_despesa'] | formatar_nascimento }}</td>
+                    <td class="fw-bold">{{ despesa['descricao'] }}</td>
+                    <td class="text-danger fw-bold">- R$ {{ "%.2f"|format(despesa['valor']) }}</td>
+                    <td class="text-end">
+                        <form action="{{ url_for('deletar_despesa', id=despesa['id']) }}" method="POST" onsubmit="return confirm('Apagar esta despesa?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted">Nenhuma despesa registada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    document.getElementById('data_hoje_despesa').valueAsDate = new Date();
+</script>
+{% endblock %}

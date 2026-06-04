@@ -7,11 +7,12 @@
 
 <div class="card mb-4 shadow-sm border-dark">
     <div class="card-body">
-        <form action="{{ url_for('novo_agendamento') }}" method="POST" class="row g-3">
+        <form action="{{ url_for('novo_agendamento') }}" method="POST" enctype="multipart/form-data" class="row g-3">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
             <div class="col-md-3">
-                <input type="text" name="cliente" id="cliente_input" class="form-control" placeholder="Nome do Cliente" list="clientes_list" required autocomplete="off">
+                <input type="text" name="cliente" id="cliente_input" class="form-control" placeholder="Nome do Cliente"
+                    list="clientes_list" required autocomplete="off">
                 <datalist id="clientes_list">
                     {% for cliente in clientes_salvos %}
                     <option value="{{ cliente['nome'] }}" data-telefone="{{ cliente['telefone'] }}"></option>
@@ -35,6 +36,10 @@
             <div class="col-md-10">
                 <input type="text" name="descricao" class="form-control"
                     placeholder="O que vai tatuar? (Ex: Fechamento braço, Maori, Traço Fino)">
+            </div>
+            <div class="col-md-10">
+                <label class="form-label text-muted small mb-0">Foto de Referência (Opcional)</label>
+                <input type="file" name="imagem" class="form-control form-control-sm" accept="image/*">
             </div>
             <div class="col-md-2 text-end">
                 <button type="submit" class="btn btn-dark w-100"><i class="bi bi-calendar-plus"></i> Marcar</button>
@@ -75,7 +80,8 @@
                     <small>
                         <i class="bi bi-whatsapp me-1"></i>
                         {% if agendamento['telefone'] %}
-                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}?text=Olá, {{ agendamento['nome_cliente'] }}! Tudo bem? Passando para confirmar a nossa sessão de tatuagem para o dia {{ agendamento['data_hora'] | formatar_data }}. Qualquer dúvida, estou à disposição!" target="_blank"
+                        <a href="https://wa.me/55{{ agendamento['telefone'] | limpar_telefone }}?text=Olá, {{ agendamento['nome_cliente'] }}! Tudo bem? Passando para confirmar a nossa sessão de tatuagem para o dia {{ agendamento['data_hora'] | formatar_data }}. Qualquer dúvida, estou à disposição!"
+                            target="_blank"
                             class="text-decoration-none fw-bold {% if agendamento['status'] == 'Concluído' %}text-white{% else %}text-success{% endif %}">
                             {{ agendamento['telefone'] }}
                         </a>
@@ -88,6 +94,29 @@
                     agendamento['descricao_tatuagem'] }}</p>
                 <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{
                     "%.2f"|format(agendamento['valor'] or 0) }}</p>
+                    
+                {% if agendamento['imagem'] %}
+                <div class="mt-2 mb-2 text-center bg-dark p-1 rounded" style="cursor: pointer;" data-bs-toggle="modal"
+                    data-bs-target="#modalVerImg{{ agendamento['id'] }}">
+                    <img src="{{ url_for('uploaded_file', filename=agendamento['imagem']) }}"
+                        style="height: 80px; object-fit: cover; width: 100%; opacity: 0.8;" title="Clique para ampliar">
+                    <span class="d-block text-white small"><i class="bi bi-zoom-in"></i> Ver Referência</span>
+                </div>
+
+                <div class="modal fade" id="modalVerImg{{ agendamento['id'] }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content bg-transparent border-0">
+                            <div class="modal-body text-center position-relative">
+                                <button type="button"
+                                    class="btn-close btn-close-white position-absolute top-0 end-0 m-3"
+                                    data-bs-dismiss="modal"></button>
+                                <img src="{{ url_for('uploaded_file', filename=agendamento['imagem']) }}"
+                                    class="img-fluid rounded shadow-lg border border-2 border-dark">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="mt-3">
                     {% if agendamento['status'] == 'Pendente' %}
@@ -259,32 +288,33 @@
     document.addEventListener('DOMContentLoaded', function () {
         var calendarEl = document.getElementById('calendario');
 
-        var eventos = {{ eventos_calendar | tojson }};
+        var eventos = {{ eventos_calendar | tojson
+    }};
 
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'timeGridWeek',
-            locale: 'pt-br',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-            },
-            slotMinTime: '06:00:00',
-            slotMaxTime: '24:00:00',
-            allDaySlot: false,
-            events: eventos,
-            eventClick: function (info) {
-                info.jsEvent.preventDefault();
-                var modalId = '#modalEditarAgenda' + info.event.id;
-                var modalElement = document.querySelector(modalId);
-                if (modalElement) {
-                    var modal = new bootstrap.Modal(modalElement);
-                    modal.show();
-                }
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        locale: 'pt-br',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        slotMinTime: '06:00:00',
+        slotMaxTime: '24:00:00',
+        allDaySlot: false,
+        events: eventos,
+        eventClick: function (info) {
+            info.jsEvent.preventDefault();
+            var modalId = '#modalEditarAgenda' + info.event.id;
+            var modalElement = document.querySelector(modalId);
+            if (modalElement) {
+                var modal = new bootstrap.Modal(modalElement);
+                modal.show();
             }
-        });
+        }
+    });
 
-        calendar.render();
+    calendar.render();
     });
 
     const inputData = document.querySelector('input[name="data_hora"]');
