@@ -16,7 +16,7 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 
 ## Como Usar
 
-### [⬇️ CLIQUE AQUI PARA BAIXAR O SISTEMA DIRETO](https://github.com/daiogocrs/sistema_tatuagem/releases/tag/v1.0.0)
+### [⬇️ CLIQUE AQUI PARA BAIXAR O SISTEMA DIRETO](https://github.com/daiogocrs/sistema_tatuagem/releases/tag/v1.2)
 
 **Passo a passo após baixar:**
 1. Salve o arquivo **`Tattoo.exe`** em uma pasta segura no seu computador.
@@ -24,7 +24,7 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 3. O sistema abrirá automaticamente no seu navegador!
 4. Basta clicar em **`Desligar`** no canto superior direito para encerrar o sistema.
 
-> **Nota:** Seus dados ficam salvos em um arquivo chamado `estudio.db` que será criado na mesma pasta do programa. Faça backup dele regularmente pela própria ferramenta do sistema!
+> **Nota:** Seus dados ficam salvos em um arquivo chamado `estudio.db` e em umas pasta chamada `uploads` que será criado na mesma pasta do programa. Faça backup dele regularmente pela própria ferramenta do sistema!
 
 ## Estrutura do Projeto
 
