@@ -215,7 +215,11 @@ def novo_agendamento():
     data_hora = request.form['data_hora']
     descricao = request.form['descricao']
     duracao = float(request.form.get('duracao', 1) or 1)
-    valor = float(request.form.get('valor') or 0.0)
+    
+    valor_str = request.form.get('valor', '').replace(',', '.')
+    try: valor = float(valor_str) if valor_str else 0.0
+    except ValueError: valor = 0.0
+
     data_hora_fim = (datetime.strptime(data_hora[:16], '%Y-%m-%dT%H:%M') + timedelta(hours=duracao)).strftime('%Y-%m-%dT%H:%M')
     
     imagem = request.files.get('imagem')
@@ -236,14 +240,22 @@ def novo_agendamento():
 @app.route('/concluir_agendamento/<int:id>', methods=['POST'])
 def concluir_agendamento(id):
     db = get_db()
+    
+    valor_str = request.form.get('valor_final', '').replace(',', '.')
+    try: valor_final = float(valor_str) if valor_str else 0.0
+    except ValueError: valor_final = 0.0
+
     material_ids = request.form.getlist('material_id[]')
     material_qtds = request.form.getlist('material_qtd[]')
+    
     for m_id, qtd in zip(material_ids, material_qtds):
         if m_id and qtd:
             db.execute("UPDATE estoque SET quantidade = MAX(0, quantidade - ?) WHERE id = ?", (int(qtd), m_id))
             db.execute("INSERT INTO agendamento_materiais (agendamento_id, material_id, quantidade) VALUES (?, ?, ?)", (id, m_id, int(qtd)))
-    db.execute("UPDATE agendamentos SET status = 'Concluído' WHERE id = ?", (id,))
+            
+    db.execute("UPDATE agendamentos SET status = 'Concluído', valor = ? WHERE id = ?", (valor_final, id))
     db.commit()
+    flash('Sessão concluída e valor contabilizado no financeiro!', 'success')
     return redirect(url_for('agenda'))
 
 @app.route('/mudar_status_agenda/<int:id>/<status>', methods=['POST'])
@@ -269,8 +281,12 @@ def deletar_agendamento(id):
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
 def editar_agendamento(id):
     db = get_db()
+    valor_str = request.form.get('valor', '').replace(',', '.')
+    try: valor = float(valor_str) if valor_str else 0.0
+    except ValueError: valor = 0.0
+    
     db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
-               (request.form['cliente'], request.form['telefone'], request.form['data_hora'][:16], request.form['data_hora_fim'][:16], request.form['descricao'], float(request.form.get('valor') or 0.0), id))
+               (request.form['cliente'], request.form['telefone'], request.form['data_hora'][:16], request.form['data_hora_fim'][:16], request.form['descricao'], valor, id))
     db.commit()
     return redirect(url_for('agenda'))
 
@@ -311,8 +327,12 @@ def financeiro():
 @app.route('/nova_despesa', methods=['POST'])
 def nova_despesa():
     db = get_db()
+    valor_str = request.form.get('valor', '').replace(',', '.')
+    try: valor = float(valor_str) if valor_str else 0.0
+    except ValueError: valor = 0.0
+    
     db.execute("INSERT INTO despesas (descricao, valor, data_despesa) VALUES (?, ?, ?)", 
-               (request.form['descricao'], float(request.form['valor']), request.form['data_despesa']))
+               (request.form['descricao'], valor, request.form['data_despesa']))
     db.commit()
     flash('Despesa adicionada!', 'success')
     return redirect(url_for('financeiro'))

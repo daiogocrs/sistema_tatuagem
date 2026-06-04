@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
-
 {% block title %}Estúdio - Agenda{% endblock %}
-
 {% block content %}
 <h2 class="mb-4 text-center">Agenda de Sessões</h2>
 
@@ -28,10 +26,10 @@
             </div>
             <div class="col-md-2">
                 <input type="number" step="0.5" name="duracao" class="form-control" placeholder="Duração (horas)"
-                    required min="0.5" title="Quantas horas de sessão? (ex: 2 ou 3.5)">
+                    required min="0.5">
             </div>
             <div class="col-md-2">
-                <input type="number" step="0.01" name="valor" class="form-control" placeholder="Valor (R$)">
+                <input type="number" step="0.01" name="valor" class="form-control" placeholder="Base (R$)">
             </div>
             <div class="col-md-10">
                 <input type="text" name="descricao" class="form-control"
@@ -41,7 +39,7 @@
                 <label class="form-label text-muted small mb-0">Foto de Referência (Opcional)</label>
                 <input type="file" name="imagem" class="form-control form-control-sm" accept="image/*">
             </div>
-            <div class="col-md-2 text-end">
+            <div class="col-md-2 text-end d-flex align-items-end">
                 <button type="submit" class="btn btn-dark w-100"><i class="bi bi-calendar-plus"></i> Marcar</button>
             </div>
         </form>
@@ -94,7 +92,7 @@
                     agendamento['descricao_tatuagem'] }}</p>
                 <p class="card-text mb-1"><strong><i class="bi bi-cash-coin me-1"></i> Valor:</strong> R$ {{
                     "%.2f"|format(agendamento['valor'] or 0) }}</p>
-                    
+
                 {% if agendamento['imagem'] %}
                 <div class="mt-2 mb-2 text-center bg-dark p-1 rounded" style="cursor: pointer;" data-bs-toggle="modal"
                     data-bs-target="#modalVerImg{{ agendamento['id'] }}">
@@ -149,28 +147,37 @@
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header bg-success text-white">
-                                <h5 class="modal-title">Finalizar e Baixar Estoque</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                                <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Finalizar Sessão</h5>
+                                <button type="button" class="btn-close btn-close-white"
+                                    data-bs-dismiss="modal"></button>
                             </div>
                             <form action="{{ url_for('concluir_agendamento', id=agendamento['id']) }}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <div class="modal-body text-dark">
-                                    <p>O que você usou na tatuagem de <strong>{{ agendamento['nome_cliente']
-                                            }}</strong>? <em>(Opcional)</em></p>
-                                    <div id="materiaisContainer{{ agendamento['id'] }}">
+                                    <div class="alert alert-light border border-success mb-4 shadow-sm">
+                                        <label class="form-label fw-bold text-success mb-1"><i
+                                                class="bi bi-cash-coin"></i> Valor FINAL cobrado (R$)</label>
+                                        <input type="number" step="0.01" name="valor_final"
+                                            class="form-control form-control-lg border-success text-success fw-bold"
+                                            value="{{ agendamento['valor'] or '' }}" required placeholder="Ex: 250.00">
+                                        <div class="form-text mt-1 text-muted">Este é o valor que entrará no seu
+                                            Dashboard e Histórico Financeiro.</div>
                                     </div>
+
+                                    <p class="mb-2"><strong>O que você usou na tatuagem de {{
+                                            agendamento['nome_cliente'] }}?</strong> <em>(Opcional para dar baixa no
+                                            estoque)</em></p>
+                                    <div id="materiaisContainer{{ agendamento['id'] }}"></div>
                                     <button type="button" class="btn btn-sm btn-outline-primary mt-2"
                                         onclick="adicionarMaterial('materiaisContainer{{ agendamento['id'] }}')">
                                         <i class="bi bi-plus"></i> Inserir Material Usado
                                     </button>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="submit" class="btn btn-secondary"
-                                        onclick="document.getElementById('materiaisContainer{{ agendamento['id'] }}').innerHTML='';">Pular
-                                        e Concluir</button>
-                                    <button type="submit" class="btn btn-success"><i class="bi bi-check2-all"></i>
-                                        Concluir com Baixa</button>
+                                <div class="modal-footer bg-light">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-success fw-bold"><i
+                                            class="bi bi-check2-all"></i> Confirmar e Concluir</button>
                                 </div>
                             </form>
                         </div>
@@ -182,51 +189,35 @@
                         <div class="modal-content">
                             <div class="modal-header bg-dark text-white">
                                 <h5 class="modal-title">Editar Sessão</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                                <button type="button" class="btn-close btn-close-white"
+                                    data-bs-dismiss="modal"></button>
                             </div>
                             <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-
                                 <div class="modal-body row g-3 text-start text-dark">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Nome do Cliente</label>
-                                        <input type="text" name="cliente" class="form-control"
-                                            value="{{ agendamento['nome_cliente'] }}" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">WhatsApp</label>
-                                        <input type="text" name="telefone" class="form-control mascara-whatsapp"
-                                            value="{{ agendamento['telefone'] }}">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Início da Sessão</label>
-                                        <input type="datetime-local" name="data_hora" class="form-control"
-                                            value="{{ agendamento['data_hora'] }}" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Previsão de Fim</label>
-                                        <input type="datetime-local" name="data_hora_fim" class="form-control"
+                                    <div class="col-md-6"><label class="form-label">Nome do Cliente</label><input
+                                            type="text" name="cliente" class="form-control"
+                                            value="{{ agendamento['nome_cliente'] }}" required></div>
+                                    <div class="col-md-6"><label class="form-label">WhatsApp</label><input type="text"
+                                            name="telefone" class="form-control mascara-whatsapp"
+                                            value="{{ agendamento['telefone'] }}"></div>
+                                    <div class="col-md-6"><label class="form-label">Início da Sessão</label><input
+                                            type="datetime-local" name="data_hora" class="form-control"
+                                            value="{{ agendamento['data_hora'] }}" required></div>
+                                    <div class="col-md-6"><label class="form-label">Previsão de Fim</label><input
+                                            type="datetime-local" name="data_hora_fim" class="form-control"
                                             value="{{ agendamento['data_hora_fim'] or agendamento['data_hora'] }}"
-                                            required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Valor Cobrado (R$)</label>
-                                        <input type="number" step="0.01" name="valor" class="form-control"
-                                            value="{{ agendamento['valor'] }}">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Descrição da Tatuagem</label>
-                                        <input type="text" name="descricao" class="form-control"
-                                            value="{{ agendamento['descricao_tatuagem'] }}">
-                                    </div>
+                                            required></div>
+                                    <div class="col-md-6"><label class="form-label">Valor Cobrado (R$)</label><input
+                                            type="number" step="0.01" name="valor" class="form-control"
+                                            value="{{ agendamento['valor'] }}"></div>
+                                    <div class="col-12"><label class="form-label">Descrição da Tatuagem</label><input
+                                            type="text" name="descricao" class="form-control"
+                                            value="{{ agendamento['descricao_tatuagem'] }}"></div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary"
-                                        data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" class="btn btn-dark"><i class="bi bi-save"></i>
-                                        Salvar</button>
-                                </div>
+                                <div class="modal-footer"><button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button><button type="submit"
+                                        class="btn btn-dark"><i class="bi bi-save"></i> Salvar</button></div>
                             </form>
                         </div>
                     </div>
@@ -241,6 +232,7 @@
     </div>
     {% endfor %}
 </div>
+
 <nav aria-label="Navegação de agenda" class="mt-4">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if page == 1 %}disabled{% endif %}">
