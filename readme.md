@@ -37,6 +37,8 @@ O sistema funciona localmente no computador, garantindo que os dados dos cliente
 └── templates/
     ├── agenda.html
     ├── base.html
+    ├── clientes.html
+    ├── financeiro.html
     └── index.html
 ```
 

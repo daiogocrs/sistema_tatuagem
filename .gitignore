@@ -2,6 +2,7 @@
 *.sqlite3
 estudio.db
 uploads/
+compilar.py
 
 venv/
 env/
