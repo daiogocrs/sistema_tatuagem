@@ -296,9 +296,27 @@ def editar_agendamento(id):
     try: valor = float(valor_str) if valor_str else 0.0
     except ValueError: valor = 0.0
     
-    db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
-               (request.form['cliente'], request.form['telefone'], request.form['data_hora'][:16], request.form['data_hora_fim'][:16], request.form['descricao'], valor, id))
+    imagem = request.files.get('imagem_nova')
+    if imagem and imagem.filename:
+        ext = imagem.filename.rsplit('.', 1)[-1].lower()
+        if ext in {'png', 'jpg', 'jpeg', 'webp'}:
+            foto_antiga = db.execute('SELECT imagem FROM agendamentos WHERE id = ?', (id,)).fetchone()
+            if foto_antiga and foto_antiga['imagem']:
+                caminho_antigo = os.path.join(app.config['UPLOAD_FOLDER'], foto_antiga['imagem'])
+                if os.path.exists(caminho_antigo):
+                    os.remove(caminho_antigo)
+            
+            nome_imagem = f"{uuid.uuid4().hex}.{ext}"
+            imagem.save(os.path.join(app.config['UPLOAD_FOLDER'], nome_imagem))
+            
+            db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=?, imagem=? WHERE id=?''', 
+                       (request.form['cliente'], request.form['telefone'], request.form['data_hora'][:16], request.form['data_hora_fim'][:16], request.form['descricao'], valor, nome_imagem, id))
+    else:
+        db.execute('''UPDATE agendamentos SET nome_cliente=?, telefone=?, data_hora=?, data_hora_fim=?, descricao_tatuagem=?, valor=? WHERE id=?''', 
+                   (request.form['cliente'], request.form['telefone'], request.form['data_hora'][:16], request.form['data_hora_fim'][:16], request.form['descricao'], valor, id))
+        
     db.commit()
+    flash('Agendamento atualizado com sucesso!', 'success')
     return redirect(url_for('agenda'))
 
 @app.route('/clientes')
@@ -370,8 +388,14 @@ def restaurar_backup():
             conn = sqlite3.connect(temp_path)
             conn.execute('SELECT 1 FROM sqlite_master LIMIT 1')
             conn.close()
-            os.replace(temp_path, DATABASE)
-            flash('Backup restaurado com sucesso! Reinicie o sistema.', 'success')
+            
+            try:
+                os.replace(temp_path, DATABASE)
+                flash('Backup restaurado com sucesso! Reinicie o sistema.', 'success')
+            except OSError:
+                if os.path.exists(temp_path): os.remove(temp_path)
+                flash('Erro: O Windows bloqueou o arquivo. Feche totalmente o sistema (terminal), reabra e tente restaurar novamente.', 'danger')
+                
         except sqlite3.Error:
             if os.path.exists(temp_path): os.remove(temp_path)
             flash('Erro: Arquivo corrompido.', 'danger')

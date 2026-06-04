@@ -192,7 +192,7 @@
                                 <button type="button" class="btn-close btn-close-white"
                                     data-bs-dismiss="modal"></button>
                             </div>
-                            <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" method="POST">
+                            <form action="{{ url_for('editar_agendamento', id=agendamento['id']) }}" enctype="multipart/form-data" method="POST">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <div class="modal-body row g-3 text-start text-dark">
                                     <div class="col-md-6"><label class="form-label">Nome do Cliente</label><input
@@ -214,6 +214,10 @@
                                     <div class="col-12"><label class="form-label">Descrição da Tatuagem</label><input
                                             type="text" name="descricao" class="form-control"
                                             value="{{ agendamento['descricao_tatuagem'] }}"></div>
+                                    <div class="col-12">
+                                        <label class="form-label">Trocar Imagem de Referência</label>
+                                        <input type="file" name="imagem_nova" class="form-control" accept="image/*">
+                                    </div>
                                 </div>
                                 <div class="modal-footer"><button type="button" class="btn btn-secondary"
                                         data-bs-dismiss="modal">Cancelar</button><button type="submit"
