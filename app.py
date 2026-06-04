@@ -20,6 +20,7 @@ app.secret_key = 'chave-secreta-estudio-tatuagem-segura'
 csrf = CSRFProtect(app) 
 DATABASE = os.path.join(BASE_DIR, 'estudio.db')
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 @app.template_filter('formatar_data')
 def formatar_data(data_string):
@@ -273,9 +274,19 @@ def mudar_status_agenda(id, status):
 @app.route('/deletar_agendamento/<int:id>', methods=['POST'])
 def deletar_agendamento(id):
     db = get_db()
+    
+    agendamento = db.execute('SELECT imagem FROM agendamentos WHERE id = ?', (id,)).fetchone()
+    
+    if agendamento and agendamento['imagem']:
+        caminho_imagem = os.path.join(app.config['UPLOAD_FOLDER'], agendamento['imagem'])
+        if os.path.exists(caminho_imagem):
+            os.remove(caminho_imagem)
+
     db.execute('DELETE FROM agendamento_materiais WHERE agendamento_id = ?', (id,))
     db.execute('DELETE FROM agendamentos WHERE id = ?', (id,))
     db.commit()
+    
+    flash('Agendamento apagado com sucesso.', 'success')
     return redirect(url_for('agenda'))
 
 @app.route('/editar_agendamento/<int:id>', methods=['POST'])
